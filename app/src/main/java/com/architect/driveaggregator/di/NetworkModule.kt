@@ -29,6 +29,15 @@ abstract class NetworkModule {
                 .connectTimeout(30, TimeUnit.SECONDS)
                 .readTimeout(60, TimeUnit.SECONDS)
                 .writeTimeout(60, TimeUnit.SECONDS)
+                .addInterceptor { chain ->
+                    val original = chain.request()
+                    val requestBuilder = original.newBuilder()
+                    try {
+                        requestBuilder.header("X-App-Version", com.architect.driveaggregator.BuildConfig.SEMVER_VERSION)
+                        requestBuilder.header("X-Build-Id", com.architect.driveaggregator.BuildConfig.GIT_COMMIT_HASH)
+                    } catch (_: Exception) {}
+                    chain.proceed(requestBuilder.build())
+                }
                 .build()
         }
     }

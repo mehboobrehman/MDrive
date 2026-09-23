@@ -16,12 +16,33 @@ class MDriveApplication : Application(), Configuration.Provider {
         super.onCreate()
         if (BuildConfig.DEBUG) {
             com.architect.driveaggregator.telemetry.AgentLogger.initDynamicConfig(this)
-            
+
             com.architect.driveaggregator.telemetry.AgentLogger.logEvent(
                 level = "INFO",
                 category = "STARTUP",
                 event = "BOOT_START",
-                message = "MDriveApplication onCreate started"
+                message = "MDriveApplication onCreate started",
+                payload = mapOf(
+                    "full_version" to BuildConfig.FULL_VERSION_STRING,
+                    "semver" to BuildConfig.SEMVER_VERSION,
+                    "commit_hash" to BuildConfig.GIT_COMMIT_HASH,
+                    "build_timestamp" to BuildConfig.BUILD_TIMESTAMP,
+                    "environment" to BuildConfig.ENVIRONMENT
+                )
+            )
+
+            com.architect.driveaggregator.telemetry.AgentLogger.logEvent(
+                level = "INFO",
+                category = "STARTUP",
+                event = "BOOT_VERSION",
+                message = "App Version Details",
+                payload = mapOf(
+                    "full_version" to BuildConfig.FULL_VERSION_STRING,
+                    "semver" to BuildConfig.SEMVER_VERSION,
+                    "commit_hash" to BuildConfig.GIT_COMMIT_HASH,
+                    "build_timestamp" to BuildConfig.BUILD_TIMESTAMP,
+                    "environment" to BuildConfig.ENVIRONMENT
+                )
             )
             
             val isDiSuccessful = this::workerFactory.isInitialized

@@ -42,6 +42,15 @@ object AgentLogger {
         .readTimeout(2, TimeUnit.SECONDS)
         .writeTimeout(2, TimeUnit.SECONDS)
         .retryOnConnectionFailure(false)
+        .addInterceptor { chain ->
+            val original = chain.request()
+            val requestBuilder = original.newBuilder()
+            try {
+                requestBuilder.header("X-App-Version", BuildConfig.SEMVER_VERSION)
+                requestBuilder.header("X-Build-Id", BuildConfig.GIT_COMMIT_HASH)
+            } catch (_: Exception) {}
+            chain.proceed(requestBuilder.build())
+        }
         .build()
 
     // Fast-failing HttpClient with 350ms timeout for concurrent LAN host discovery
