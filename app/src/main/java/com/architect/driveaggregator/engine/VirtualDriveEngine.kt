@@ -1,5 +1,6 @@
 package com.architect.driveaggregator.engine
 
+import com.architect.driveaggregator.telemetry.AgentLogger
 import java.io.File
 import java.io.InputStream
 import java.security.MessageDigest
@@ -146,8 +147,59 @@ class RoundRobinAllocationStrategy : AllocationStrategy {
 class VirtualDriveEngine(
     private val sagaTransactionDao: com.architect.driveaggregator.data.SagaTransactionDao,
     private val allocationStrategy: AllocationStrategy = AvailableSpaceWeightedAllocationStrategy(),
+    private val cacheManager: com.architect.driveaggregator.cache.CacheManager? = null,
     private val defaultChunkSize: Long = 8L * 1024 * 1024 // 8MB default atomic chunks
 ) {
+
+    /**
+     * Reconstructs a file from its shards and stores it in the cache for offline viewing.
+     */
+    suspend fun reconstructAndCacheFile(
+        virtualFileId: String,
+        shards: List<com.architect.driveaggregator.data.FileShardEntity>,
+        fetchShard: suspend (com.architect.driveaggregator.data.FileShardEntity) -> InputStream
+    ) {
+        val startTime = System.currentTimeMillis()
+        AgentLogger.logEvent("INFO", "EXECUTION", "FILE_RECONSTRUCT_START", "Starting file reconstruction", mapOf("fileId" to virtualFileId, "shards_count" to shards.size))
+        
+        try {
+            val manager = cacheManager ?: return
+            val sortedShards = shards.sortedBy { it.shardIndex }
+            val tempFile = File.createTempFile("reconstruct_$virtualFileId", null)
+            tempFile.outputStream().use { output ->
+                for (shard in sortedShards) {
+                    fetchShard(shard).use { input ->
+                        input.copyTo(output)
+                    }
+                }
+            }
+            tempFile.inputStream().use { input ->
+                manager.put(virtualFileId, input)
+            }
+            tempFile.delete()
+            
+            val duration = System.currentTimeMillis() - startTime
+            AgentLogger.logEvent("INFO", "EXECUTION", "FILE_RECONSTRUCT_SUCCESS", "File reconstruction complete", mapOf("fileId" to virtualFileId, "duration_ms" to duration))
+        } catch (e: Exception) {
+            val duration = System.currentTimeMillis() - startTime
+            AgentLogger.logEvent("ERROR", "EXECUTION", "FILE_RECONSTRUCT_ERROR", "File reconstruction failed: ${e.message}", mapOf("fileId" to virtualFileId, "duration_ms" to duration), e.stackTraceToString())
+            throw e
+        }
+    }
+
+    /**
+     * Retrieves a reconstructed file from the cache if available.
+     */
+    fun getCachedFile(virtualFileId: String): InputStream? {
+        return cacheManager?.get(virtualFileId)
+    }
+
+    /**
+     * Checks if a file is cached.
+     */
+    fun isFileCached(virtualFileId: String): Boolean {
+        return cacheManager?.contains(virtualFileId) ?: false
+    }
 
     /**
      * Calculates aggregate storage capacity across a list of linked accounts.
@@ -176,96 +228,77 @@ class VirtualDriveEngine(
 
     /**
      * Splits a file into atomic chunks of specified chunk size (default 8MB) and computes SHA-256 checksums per chunk.
+     * Does NOT retain chunk byte arrays in memory (dataBytes = null) to prevent OutOfMemoryError on large files.
      */
     fun planFileChunking(file: File, chunkSize: Long = defaultChunkSize): List<ChunkMeta> {
         require(file.exists() && file.isFile) { "File does not exist or is not a valid file: ${file.absolutePath}" }
         require(chunkSize > 0) { "Chunk size must be greater than zero." }
 
-        val chunks = mutableListOf<ChunkMeta>()
-        file.inputStream().buffered().use { input ->
-            var chunkIndex = 0
-            var offset = 0L
-            val buffer = ByteArray(chunkSize.toInt())
-
-            while (true) {
-                var bytesRead = 0
-                while (bytesRead < buffer.size) {
-                    val read = input.read(buffer, bytesRead, buffer.size - bytesRead)
-                    if (read == -1) break
-                    bytesRead += read
-                }
-
-                if (bytesRead == 0) break
-
-                val chunkData = if (bytesRead == buffer.size) {
-                    buffer.copyOf()
-                } else {
-                    buffer.copyOfRange(0, bytesRead)
-                }
-
-                val checksum = computeSha256(chunkData)
-                chunks.add(
-                    ChunkMeta(
-                        chunkIndex = chunkIndex,
-                        offset = offset,
-                        size = bytesRead.toLong(),
-                        sha256Checksum = checksum,
-                        dataBytes = chunkData
-                    )
-                )
-
-                offset += bytesRead
-                chunkIndex++
-                if (bytesRead < buffer.size) break
-            }
+        return file.inputStream().use { input ->
+            planStreamChunking(input, chunkSize)
         }
-
-        return chunks
     }
 
     /**
      * Splits input stream data into atomic chunks and computes SHA-256 checksums per chunk.
+     * Calculates SHA-256 directly over a streaming buffer without storing bytes in ChunkMeta.dataBytes (dataBytes = null).
      */
     fun planStreamChunking(inputStream: InputStream, chunkSize: Long = defaultChunkSize): List<ChunkMeta> {
+        val startTime = System.currentTimeMillis()
+        AgentLogger.logEvent("INFO", "EXECUTION", "CHUNK_PLAN_START", "Starting file chunking plan", mapOf("chunkSize" to chunkSize))
+        
         require(chunkSize > 0) { "Chunk size must be greater than zero." }
 
         val chunks = mutableListOf<ChunkMeta>()
-        inputStream.buffered().use { input ->
-            var chunkIndex = 0
-            var offset = 0L
-            val buffer = ByteArray(chunkSize.toInt())
+        try {
+            inputStream.buffered().use { input ->
+                var chunkIndex = 0
+                var offset = 0L
+                val bufferSize = minOf(chunkSize, 64L * 1024).toInt()
+                val buffer = ByteArray(bufferSize)
 
-            while (true) {
-                var bytesRead = 0
-                while (bytesRead < buffer.size) {
-                    val read = input.read(buffer, bytesRead, buffer.size - bytesRead)
-                    if (read == -1) break
-                    bytesRead += read
-                }
+                var endOfStream = false
+                while (!endOfStream) {
+                    val digest = MessageDigest.getInstance("SHA-256")
+                    var bytesReadForChunk = 0L
 
-                if (bytesRead == 0) break
+                    while (bytesReadForChunk < chunkSize) {
+                        val bytesToRead = minOf(buffer.size.toLong(), chunkSize - bytesReadForChunk).toInt()
+                        val read = input.read(buffer, 0, bytesToRead)
+                        if (read == -1) {
+                            endOfStream = true
+                            break
+                        }
+                        digest.update(buffer, 0, read)
+                        bytesReadForChunk += read
+                    }
 
-                val chunkData = if (bytesRead == buffer.size) {
-                    buffer.copyOf()
-                } else {
-                    buffer.copyOfRange(0, bytesRead)
-                }
+                    if (bytesReadForChunk == 0L) break
 
-                val checksum = computeSha256(chunkData)
-                chunks.add(
-                    ChunkMeta(
-                        chunkIndex = chunkIndex,
-                        offset = offset,
-                        size = bytesRead.toLong(),
-                        sha256Checksum = checksum,
-                        dataBytes = chunkData
+                    val hashBytes = digest.digest()
+                    val checksum = hashBytes.joinToString("") { "%02x".format(it) }
+
+                    chunks.add(
+                        ChunkMeta(
+                            chunkIndex = chunkIndex,
+                            offset = offset,
+                            size = bytesReadForChunk,
+                            sha256Checksum = checksum,
+                            dataBytes = null
+                        )
                     )
-                )
 
-                offset += bytesRead
-                chunkIndex++
-                if (bytesRead < buffer.size) break
+                    offset += bytesReadForChunk
+                    chunkIndex++
+                }
             }
+            
+            val duration = System.currentTimeMillis() - startTime
+            AgentLogger.logEvent("INFO", "EXECUTION", "CHUNK_PLAN_SUCCESS", "File chunking plan complete", mapOf("chunks_count" to chunks.size, "duration_ms" to duration))
+        } catch (e: Exception) {
+            val duration = System.currentTimeMillis() - startTime
+            AgentLogger.logEvent("ERROR", "EXECUTION", "CHUNK_PLAN_ERROR", "File chunking plan failed: ${e.message}", mapOf("duration_ms" to duration), e.stackTraceToString())
+            throw e
         }
 
         return chunks
@@ -289,27 +322,39 @@ class VirtualDriveEngine(
         mimeType: String,
         allocations: List<ChunkAllocation>
     ) {
-        val virtualFile = com.architect.driveaggregator.data.VirtualFileEntity(
-            virtualFileId = virtualFileId,
-            fileName = fileName,
-            fileSize = fileSize,
-            mimeType = mimeType,
-            sagaState = "SHARDING"
-        )
-
-        val shardEntities = allocations.map { allocation ->
-            com.architect.driveaggregator.data.FileShardEntity(
-                shardId = "${virtualFileId}_shard_${allocation.chunkIndex}",
+        val startTime = System.currentTimeMillis()
+        AgentLogger.logEvent("INFO", "EXECUTION", "TX_PREPARE_START", "Preparing virtual file upload transaction", mapOf("fileId" to virtualFileId, "fileName" to fileName, "shards_count" to allocations.size))
+        
+        try {
+            val virtualFile = com.architect.driveaggregator.data.VirtualFileEntity(
                 virtualFileId = virtualFileId,
-                shardIndex = allocation.chunkIndex,
-                targetAccountId = allocation.targetAccountId,
-                shardSize = allocation.chunkMeta.size,
-                uploadState = "PENDING"
+                fileName = fileName,
+                fileSize = fileSize,
+                mimeType = mimeType,
+                sagaState = "SHARDING"
             )
-        }
 
-        sagaTransactionDao.insertSagaTransaction(virtualFile, shardEntities)
-        sagaTransactionDao.updateSagaState(virtualFileId, "PENDING")
+            val shardEntities = allocations.map { allocation ->
+                com.architect.driveaggregator.data.FileShardEntity(
+                    shardId = "${virtualFileId}_shard_${allocation.chunkIndex}",
+                    virtualFileId = virtualFileId,
+                    shardIndex = allocation.chunkIndex,
+                    targetAccountId = allocation.targetAccountId,
+                    shardSize = allocation.chunkMeta.size,
+                    uploadState = "PENDING"
+                )
+            }
+
+            sagaTransactionDao.insertSagaTransaction(virtualFile, shardEntities)
+            sagaTransactionDao.updateSagaState(virtualFileId, "PENDING")
+            
+            val duration = System.currentTimeMillis() - startTime
+            AgentLogger.logEvent("INFO", "EXECUTION", "TX_PREPARE_SUCCESS", "Virtual file upload transaction prepared", mapOf("fileId" to virtualFileId, "duration_ms" to duration))
+        } catch (e: Exception) {
+            val duration = System.currentTimeMillis() - startTime
+            AgentLogger.logEvent("ERROR", "EXECUTION", "TX_PREPARE_ERROR", "Failed to prepare virtual file transaction: ${e.message}", mapOf("fileId" to virtualFileId, "duration_ms" to duration), e.stackTraceToString())
+            throw e
+        }
     }
 
     /**

@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import androidx.sqlite.db.SupportSQLiteDatabase
 
 /**
  * AppDatabase acts as the Room Database singleton for MDrive,
@@ -38,19 +37,7 @@ abstract class AppDatabase : RoomDatabase() {
                 DATABASE_NAME
             )
                 .fallbackToDestructiveMigration()
-                .addCallback(object : Callback() {
-                    override fun onCreate(db: SupportSQLiteDatabase) {
-                        super.onCreate(db)
-                        // Enable WAL mode explicitly on database creation
-                        db.execSQL("PRAGMA journal_mode=WAL;")
-                    }
-
-                    override fun onOpen(db: SupportSQLiteDatabase) {
-                        super.onOpen(db)
-                        // Ensure WAL mode remains enabled across connections
-                        db.execSQL("PRAGMA journal_mode=WAL;")
-                    }
-                })
+                .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
                 .build()
         }
     }

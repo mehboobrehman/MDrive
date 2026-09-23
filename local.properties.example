@@ -1,0 +1,7 @@
+## Google OAuth 2.0 Credentials
+## Obtain these from Google Cloud Console -> APIs & Services -> Credentials
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+
+## Upload Configuration
+MAX_PARALLEL_UPLOADS=2
+CHUNK_SIZE_BYTES=8388608

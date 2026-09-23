@@ -3,6 +3,7 @@ package com.architect.driveaggregator.security
 import android.content.Context
 import android.content.SharedPreferences
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -117,6 +118,23 @@ class SecureTokenVaultTest {
         
         // Should be removed after retrieval
         assertNull(vault.getAndRemovePkceVerifier(state))
+    }
+
+    @Test
+    fun isDegraded_reflectsDegradedFlagFromPrefs() {
+        fakePrefs.edit().putBoolean(SecureTokenVault.KEY_VAULT_DEGRADED, true).apply()
+        val degradedVault = SecureTokenVault(
+            context = mockContext,
+            overrideSharedPreferences = fakePrefs
+        )
+        assertTrue(degradedVault.isDegraded())
+        assertTrue(degradedVault.degraded)
+    }
+
+    @Test
+    fun notDegraded_whenDegradedFlagAbsent() {
+        assertFalse(vault.isDegraded())
+        assertFalse(vault.degraded)
     }
 
     @Test

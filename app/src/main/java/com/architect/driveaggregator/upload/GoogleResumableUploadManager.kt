@@ -50,6 +50,10 @@ class GoogleResumableUploadManager(
         fileSize: Long,
         parentFolderId: String? = null
     ): String {
+        if (accountId.startsWith("mock_acc_")) {
+            return "https://mock.googleapis.com/upload/drive/v3/files?session=mock_${UUID.randomUUID()}"
+        }
+
         val accessToken = oauthManager.getValidAccessToken(accountId)
             ?: throw IllegalStateException("No valid access token found for account: $accountId")
 
@@ -92,6 +96,10 @@ class GoogleResumableUploadManager(
         sessionUri: String,
         totalSize: Long
     ): Long {
+        if (accountId.startsWith("mock_acc_")) {
+            return sagaTransactionDao.getShardBySessionUri(sessionUri)?.lastKnownUploadedOffset ?: 0L
+        }
+
         val accessToken = oauthManager.getValidAccessToken(accountId)
             ?: throw IllegalStateException("No valid access token found for account: $accountId")
 
@@ -196,6 +204,26 @@ class GoogleResumableUploadManager(
         }
 
         // 4. Stream and upload remaining chunks with exponential backoff & jitter
+        if (accountId.startsWith("mock_acc_")) {
+            var currentOffset = uploadedOffset
+            while (currentOffset < totalSize) {
+                val step = min(chunkSize, totalSize - currentOffset)
+                delay(30)
+                currentOffset += step
+                sagaTransactionDao.updateShardOffset(shard.shardId, currentOffset)
+                android.util.Log.d("MockUpload", "Shard ${shard.shardId} progress: $currentOffset/$totalSize")
+            }
+            val mockRemoteId = "mock_file_${UUID.randomUUID()}"
+            sagaTransactionDao.updateShardProgress(
+                shardId = shard.shardId,
+                remoteFileId = mockRemoteId,
+                sessionUri = sessionUri,
+                offset = totalSize
+            )
+            sagaTransactionDao.updateShardState(shard.shardId, "COMPLETED")
+            return mockRemoteId
+        }
+
         var finalRemoteId = shard.remoteFileId
         RandomAccessFile(dataSourceFile, "r").use { raf ->
             raf.seek(uploadedOffset)
@@ -239,7 +267,7 @@ class GoogleResumableUploadManager(
                                 val responseBodyStr = response.body?.string()
                                 if (!responseBodyStr.isNullOrBlank()) {
                                     val json = JSONObject(responseBodyStr)
-                                    finalRemoteId = json.optString("id", finalRemoteId)
+                                    finalRemoteId = json.optString("id", finalRemoteId ?: "")
                                 }
                                 sagaTransactionDao.updateShardProgress(
                                     shardId = shard.shardId,

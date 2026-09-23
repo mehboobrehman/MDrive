@@ -3,6 +3,7 @@ package com.architect.driveaggregator.auth
 import java.util.Base64
 import com.architect.driveaggregator.BuildConfig
 import com.architect.driveaggregator.security.SecureTokenVault
+import com.architect.driveaggregator.telemetry.AgentLogger
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.util.UUID
@@ -13,13 +14,41 @@ import java.util.UUID
  */
 class GoogleOAuthManager(
     private val tokenVault: SecureTokenVault,
-    private val networkClient: OAuthNetworkClient
+    private val networkClient: OAuthNetworkClient,
+    private val clientId: String = BuildConfig.GOOGLE_CLIENT_ID
 ) {
     companion object {
         private const val AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth"
         const val REDIRECT_URI = "com.architect.driveaggregator:/oauth2redirect"
         private const val SCOPE = "https://www.googleapis.com/auth/drive.file"
         private const val REFRESH_THRESHOLD_MS = 5 * 60 * 1000L // 5 minutes
+
+        private const val CLIENT_ID_PLACEHOLDER = "your-google-client-id.apps.googleusercontent.com"
+        private const val CLIENT_ID_SUFFIX = ".apps.googleusercontent.com"
+
+        /**
+         * Shown to the user when GOOGLE_CLIENT_ID is blank, still the placeholder from
+         * local.properties.example, or otherwise not a real Google OAuth client id.
+         */
+        const val OAUTH_MISCONFIGURED_MESSAGE =
+            "OAuth misconfigured: GOOGLE_CLIENT_ID is missing/placeholder in local.properties — see project docs"
+
+        /**
+         * Returns the reason a client id cannot be used with Google's authorization
+         * endpoint, or null if the id looks valid.
+         */
+        internal fun validateClientId(clientId: String): ClientIdIssue? = when {
+            clientId.isBlank() -> ClientIdIssue.BLANK
+            clientId == CLIENT_ID_PLACEHOLDER -> ClientIdIssue.PLACEHOLDER
+            !clientId.endsWith(CLIENT_ID_SUFFIX) -> ClientIdIssue.INVALID_SUFFIX
+            else -> null
+        }
+    }
+
+    internal enum class ClientIdIssue {
+        BLANK,
+        PLACEHOLDER,
+        INVALID_SUFFIX
     }
 
     /**
@@ -27,6 +56,24 @@ class GoogleOAuthManager(
      * Implements PKCE (Proof Key for Code Exchange) by generating a challenge and storing the verifier.
      */
     fun getAuthorizationUrl(): String {
+        // Guard against a blank/placeholder client id being sent to Google's authorization
+        // endpoint, which fails with HTTP 401 invalid_client ("The OAuth client not found").
+        val trimmedClientId = clientId.trim()
+        val clientIdIssue = validateClientId(trimmedClientId)
+        if (clientIdIssue != null) {
+            AgentLogger.logEvent(
+                level = "ERROR",
+                category = "OAUTH",
+                event = "OAUTH_MISCONFIGURED",
+                message = OAUTH_MISCONFIGURED_MESSAGE,
+                payload = mapOf(
+                    "clientIdState" to clientIdIssue.name,
+                    "client_id" to "[REDACTED]"
+                )
+            )
+            throw IllegalStateException(OAUTH_MISCONFIGURED_MESSAGE)
+        }
+
         val state = UUID.randomUUID().toString()
         val codeVerifier = generateCodeVerifier()
         val codeChallenge = generateCodeChallenge(codeVerifier)
@@ -34,7 +81,7 @@ class GoogleOAuthManager(
         tokenVault.storePkceVerifier(state, codeVerifier)
 
         return "$AUTH_ENDPOINT?" +
-                "client_id=${BuildConfig.GOOGLE_CLIENT_ID}&" +
+                "client_id=$trimmedClientId&" +
                 "redirect_uri=$REDIRECT_URI&" +
                 "response_type=code&" +
                 "scope=$SCOPE&" +
@@ -54,6 +101,11 @@ class GoogleOAuthManager(
             ?: return Result.failure(Exception("Invalid state or missing PKCE verifier"))
 
         return try {
+            AgentLogger.logEvent(
+                "INFO", "OAUTH", "OAUTH_TOKEN_EXCHANGE_START",
+                "Exchanging authorization code for tokens",
+                mapOf("flow" to "authorization_code")
+            )
             val response = networkClient.exchangeCodeForTokens(code, codeVerifier)
             val expiryTimeMs = System.currentTimeMillis() + (response.expiresInSeconds * 1000L)
             
@@ -61,9 +113,19 @@ class GoogleOAuthManager(
             response.refreshToken?.let {
                 tokenVault.storeRefreshToken(response.accountId, it)
             }
-            
+
+            AgentLogger.logEvent(
+                "INFO", "OAUTH", "OAUTH_TOKEN_EXCHANGE_SUCCESS",
+                "Token exchange succeeded",
+                mapOf("flow" to "authorization_code")
+            )
             Result.success(response.accountId)
         } catch (e: Exception) {
+            AgentLogger.logEvent(
+                "ERROR", "OAUTH", "OAUTH_TOKEN_EXCHANGE_FAILED",
+                "Token exchange failed: ${e.message}",
+                mapOf("flow" to "authorization_code", "failure" to (e.message ?: "unknown"))
+            )
             Result.failure(e)
         }
     }
@@ -85,6 +147,11 @@ class GoogleOAuthManager(
         val refreshToken = tokenVault.getRefreshToken(accountId) ?: return null
         
         return try {
+            AgentLogger.logEvent(
+                "INFO", "OAUTH", "OAUTH_TOKEN_EXCHANGE_START",
+                "Refreshing access token",
+                mapOf("flow" to "refresh_token")
+            )
             val response = networkClient.refreshAccessToken(refreshToken)
             val newExpiryTimeMs = System.currentTimeMillis() + (response.expiresInSeconds * 1000L)
             
@@ -92,9 +159,19 @@ class GoogleOAuthManager(
             response.refreshToken?.let {
                 tokenVault.storeRefreshToken(accountId, it)
             }
-            
+
+            AgentLogger.logEvent(
+                "INFO", "OAUTH", "OAUTH_TOKEN_EXCHANGE_SUCCESS",
+                "Token refresh succeeded",
+                mapOf("flow" to "refresh_token")
+            )
             response.accessToken
         } catch (e: Exception) {
+            AgentLogger.logEvent(
+                "ERROR", "OAUTH", "OAUTH_TOKEN_EXCHANGE_FAILED",
+                "Token refresh failed: ${e.message}",
+                mapOf("flow" to "refresh_token", "failure" to (e.message ?: "unknown"))
+            )
             null
         }
     }

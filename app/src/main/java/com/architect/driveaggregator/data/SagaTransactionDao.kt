@@ -32,8 +32,17 @@ interface SagaTransactionDao {
         insertFileShards(shards)
     }
 
+    @Query("SELECT * FROM file_shards WHERE resumableSessionUri = :sessionUri LIMIT 1")
+    suspend fun getShardBySessionUri(sessionUri: String): FileShardEntity?
+
     @Query("SELECT * FROM virtual_files WHERE virtualFileId = :virtualFileId")
     suspend fun getVirtualFile(virtualFileId: String): VirtualFileEntity?
+
+    @Query("SELECT * FROM virtual_files ORDER BY createdAt DESC")
+    suspend fun getAllVirtualFiles(): List<VirtualFileEntity>
+
+    @Query("SELECT * FROM virtual_files ORDER BY createdAt DESC")
+    fun observeAllVirtualFiles(): Flow<List<VirtualFileEntity>>
 
     @Query("SELECT * FROM virtual_files WHERE virtualFileId = :virtualFileId")
     fun observeVirtualFile(virtualFileId: String): Flow<VirtualFileEntity?>

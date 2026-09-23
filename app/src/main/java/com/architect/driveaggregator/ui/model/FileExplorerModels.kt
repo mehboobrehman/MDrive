@@ -1,0 +1,34 @@
+package com.architect.driveaggregator.ui.model
+
+data class VirtualFileItem(
+    val virtualFileId: String,
+    val fileName: String,
+    val fileSize: Long,
+    val mimeType: String,
+    val sagaState: String, // e.g. "PENDING", "COMPLETED", "UPLOADING", "DOWNLOADING", "ERROR"
+    val uploadedShardsCount: Int,
+    val totalShardsCount: Int,
+    val createdAt: Long = System.currentTimeMillis()
+)
+
+data class TransferProgressItem(
+    val transferId: String,
+    val virtualFileId: String,
+    val fileName: String,
+    val transferType: TransferType, // UPLOAD, DOWNLOAD, SYNC
+    val status: TransferStatus,     // PENDING, IN_PROGRESS, PAUSED, COMPLETED, FAILED, CANCELLED
+    val progressPercent: Float,     // 0.0 to 1.0
+    val bytesTransferred: Long,
+    val totalBytes: Long,
+    val currentShardIndex: Int? = null,
+    val totalShards: Int? = null,
+    val errorMessage: String? = null
+)
+
+enum class TransferType {
+    UPLOAD, DOWNLOAD, SYNC
+}
+
+enum class TransferStatus {
+    PENDING, IN_PROGRESS, PAUSED, COMPLETED, FAILED, CANCELLED
+}

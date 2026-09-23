@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import android.util.Log
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import com.architect.driveaggregator.telemetry.AgentLogger
 
 /**
  * SecureTokenVault stores OAuth tokens (access and refresh tokens) for multiple accounts
@@ -15,8 +16,26 @@ class SecureTokenVault @JvmOverloads constructor(
     prefsFileName: String = DEFAULT_PREFS_FILE,
     overrideSharedPreferences: SharedPreferences? = null
 ) {
-    private val prefs: SharedPreferences = overrideSharedPreferences
-        ?: createEncryptedPreferences(context, prefsFileName)
+    private val prefs: SharedPreferences = runCatching {
+        overrideSharedPreferences ?: createEncryptedPreferences(context, prefsFileName)
+    }.getOrElse { initFailure ->
+        // Never propagate a Keystore/prefs failure: fall back to degraded storage so no
+        // thread (WorkManager worker, Hilt init) crashes during secure vault init.
+        Log.e(TAG, "Secure storage init failed; using degraded fallback prefs", initFailure)
+        createDegradedFallbackPreferences(context, prefsFileName, initFailure)
+    }
+
+    /**
+     * True when the vault is running degraded: the Android Keystore was unavailable or
+     * corrupt, so tokens are persisted in PLAIN (unencrypted) SharedPreferences. Accounts
+     * must be re-authenticated to restore encrypted storage.
+     */
+    val degraded: Boolean = prefs.getBoolean(KEY_VAULT_DEGRADED, false)
+
+    /**
+     * Returns whether secure storage has degraded to unencrypted SharedPreferences.
+     */
+    fun isDegraded(): Boolean = degraded
 
     /**
      * Stores a refresh token for the specified account ID.
@@ -170,6 +189,7 @@ class SecureTokenVault @JvmOverloads constructor(
     companion object {
         private const val TAG = "SecureTokenVault"
         const val DEFAULT_PREFS_FILE = "secure_oauth_tokens"
+        const val KEY_VAULT_DEGRADED = "vault_degraded"
         private const val KEY_ACCOUNT_IDS = "vault_registered_account_ids"
 
         private const val PREFIX_REFRESH_TOKEN = "refresh_token_"
@@ -184,7 +204,17 @@ class SecureTokenVault @JvmOverloads constructor(
 
         /**
          * Creates an EncryptedSharedPreferences instance backed by Android Keystore MasterKey.
-         * Handles Keystore exceptions gracefully with cleanup, retry, and fallback.
+         *
+         * Degradation strategy (keeps the vault usable and worker threads alive):
+         * 1. Attempt to build encrypted prefs.
+         * 2. On Keystore failure: delete the corrupt prefs file and retry once.
+         * 3. On retry failure: delete the corrupt file again, fall back to PLAIN
+         *    SharedPreferences flagged with vault_degraded=true, and emit a
+         *    SECURITY:VAULT_DEGRADED telemetry event. Tokens keep working (get/put) but are
+         *    NOT encrypted — the user must re-authenticate their Google accounts to restore
+         *    encrypted storage.
+         * Never throws: callers (Hilt init, WorkManager workers) must not crash on Keystore
+         * corruption.
          */
         private fun createEncryptedPreferences(context: Context, fileName: String): SharedPreferences {
             return try {
@@ -195,14 +225,42 @@ class SecureTokenVault @JvmOverloads constructor(
                     context.deleteSharedPreferences(fileName)
                     buildEncryptedSharedPreferences(context, fileName)
                 } catch (retryException: Exception) {
-                    Log.e(
-                        TAG,
-                        "Retry creating EncryptedSharedPreferences failed. Falling back to standard SharedPreferences.",
-                        retryException
-                    )
-                    context.getSharedPreferences("${fileName}_uncrypted_fallback", Context.MODE_PRIVATE)
+                    Log.e(TAG, "Unrecoverable Android Keystore corruption/failure. Degrading to plain SharedPreferences.", retryException)
+                    // Clear invalid prefs to unblock future clean authentications
+                    context.deleteSharedPreferences(fileName)
+                    createDegradedFallbackPreferences(context, fileName, retryException)
                 }
             }
+        }
+
+        /**
+         * Creates a PLAIN (unencrypted) SharedPreferences fallback, marks it degraded, and
+         * reports the security downgrade through telemetry (SECURITY:VAULT_DEGRADED).
+         */
+        private fun createDegradedFallbackPreferences(
+            context: Context,
+            fileName: String,
+            cause: Throwable
+        ): SharedPreferences {
+            val plainPrefs = context.getSharedPreferences(fileName, Context.MODE_PRIVATE)
+            runCatching {
+                plainPrefs.edit().putBoolean(KEY_VAULT_DEGRADED, true).apply()
+            }
+            AgentLogger.logEvent(
+                level = "ERROR",
+                category = "SECURITY",
+                event = "VAULT_DEGRADED",
+                message = "Secure storage initialization failed due to Keystore corruption. " +
+                    "Degraded to UNENCRYPTED SharedPreferences: tokens are not encrypted and " +
+                    "accounts must be re-authenticated.",
+                payload = mapOf(
+                    "prefsFile" to fileName,
+                    "exceptionClass" to cause.javaClass.name,
+                    "exceptionMessage" to (cause.message ?: "")
+                ),
+                stack = cause.stackTraceToString()
+            )
+            return plainPrefs
         }
 
         private fun buildEncryptedSharedPreferences(context: Context, fileName: String): SharedPreferences {

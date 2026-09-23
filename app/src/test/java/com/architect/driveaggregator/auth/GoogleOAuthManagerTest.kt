@@ -4,6 +4,7 @@ import com.architect.driveaggregator.security.SecureTokenVault
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -12,6 +13,7 @@ import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
+import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 
@@ -21,11 +23,15 @@ class GoogleOAuthManagerTest {
     private lateinit var mockNetworkClient: OAuthNetworkClient
     private lateinit var oauthManager: GoogleOAuthManager
 
+    // A realistic-looking client id used to exercise the happy path without
+    // hitting the placeholder guard in getAuthorizationUrl().
+    private val validClientId = "123456789012-abcdefghijklmnop.apps.googleusercontent.com"
+
     @Before
     fun setUp() {
         mockVault = mock(SecureTokenVault::class.java)
         mockNetworkClient = mock(OAuthNetworkClient::class.java)
-        oauthManager = GoogleOAuthManager(mockVault, mockNetworkClient)
+        oauthManager = GoogleOAuthManager(mockVault, mockNetworkClient, validClientId)
     }
 
     @Test
@@ -36,6 +42,39 @@ class GoogleOAuthManagerTest {
         assertTrue(url.contains("code_challenge_method=S256"))
         assertTrue(url.contains("scope=https://www.googleapis.com/auth/drive.file"))
         assertTrue(url.contains("response_type=code"))
+        assertTrue(url.contains("client_id=$validClientId"))
+        verify(mockVault).storePkceVerifier(anyString(), anyString())
+    }
+
+    @Test
+    fun getAuthorizationUrl_rejectsBlankClientId() {
+        val manager = GoogleOAuthManager(mockVault, mockNetworkClient, "   ")
+        val ex = assertThrows(IllegalStateException::class.java) { manager.getAuthorizationUrl() }
+        assertTrue(ex.message!!.contains("GOOGLE_CLIENT_ID"))
+        verify(mockVault, never()).storePkceVerifier(anyString(), anyString())
+    }
+
+    @Test
+    fun getAuthorizationUrl_rejectsPlaceholderClientId() {
+        val manager = GoogleOAuthManager(mockVault, mockNetworkClient, "your-google-client-id.apps.googleusercontent.com")
+        val ex = assertThrows(IllegalStateException::class.java) { manager.getAuthorizationUrl() }
+        assertTrue(ex.message!!.contains("GOOGLE_CLIENT_ID"))
+        verify(mockVault, never()).storePkceVerifier(anyString(), anyString())
+    }
+
+    @Test
+    fun getAuthorizationUrl_rejectsClientIdWithoutGoogleSuffix() {
+        val manager = GoogleOAuthManager(mockVault, mockNetworkClient, "12345-not-a-real-client")
+        val ex = assertThrows(IllegalStateException::class.java) { manager.getAuthorizationUrl() }
+        assertTrue(ex.message!!.contains("GOOGLE_CLIENT_ID"))
+        verify(mockVault, never()).storePkceVerifier(anyString(), anyString())
+    }
+
+    @Test
+    fun getAuthorizationUrl_acceptsRealisticClientId() {
+        val manager = GoogleOAuthManager(mockVault, mockNetworkClient, "987654321098-zyxwvutsrqponmlk.apps.googleusercontent.com")
+        val url = manager.getAuthorizationUrl()
+        assertTrue(url.contains("client_id=987654321098-zyxwvutsrqponmlk.apps.googleusercontent.com"))
         verify(mockVault).storePkceVerifier(anyString(), anyString())
     }
 

@@ -23,3 +23,17 @@ Implement GoogleOAuthManager supporting OAuth 2.0 multi-account authorization fl
 Pivoted OAuth to use PKCE flow and 'drive.file' scope. PKCE eliminates the need for a client secret in the native app, improving security. The 'drive.file' scope is non-restricted and safer for the app's purpose.
 
 **Impact**: app/build.gradle.kts, GoogleOAuthManager.kt, local.properties.example, SecureTokenVault.kt
+
+## Telemetry: test-env guard in AgentLogger
+**When**: 2026-09-14 15:26:36
+
+Robolectric unit tests were POSTing telemetry to the live server (manufacturer/model=robolectric flood in device-stream.log). AgentLogger now detects test env via Build.FINGERPRINT/MANUFACTURER/MODEL containing "robolectric" or system property agentlogger.posting=false, and mirrors to Logcat only — no queueing/network. initDynamicConfig skips discovery & metrics monitoring; setServerAddress keeps cachedServerUrl for assertions but skips POST.
+
+**Impact**: AgentLogger.kt, device-stream.log, all Robolectric unit tests
+
+## OAuth: validate GOOGLE_CLIENT_ID + OAUTH telemetry events
+**When**: 2026-09-15 09:23:39
+
+Root-caused invalid_client (401) to the placeholder client id compiled from local.properties.example. getAuthorizationUrl() now throws a descriptive IllegalStateException when the id is blank/placeholder/invalid-looking (never sent to Google), and the OAuth pipeline logs OAUTH_INIT/OAUTH_URL_OPENED/OAUTH_REDIRECT_RECEIVED (parses error+error_description)/OAUTH_TOKEN_EXCHANGE_{START,SUCCESS,FAILED}/OAUTH_MISCONFIGURED. Raw client id is never logged; only "[REDACTED]". UI surfaces Google error cod…
+
+**Impact**: GoogleOAuthManager.kt, MainActivity.kt, LinkedAccountsViewModel.kt, LinkedAccountsScreen.kt, GoogleOAuthManagerTest.kt
