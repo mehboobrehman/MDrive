@@ -5,10 +5,26 @@ const os = require('os');
 const { execSync } = require('child_process');
 
 // Configuration
-const DEFAULT_PORT = 8080;
-const FALLBACK_PORT = 8081;
+const DEFAULT_PORT = 5000;
+const FALLBACK_PORT = 5001;
 const LOGS_DIR = path.join(__dirname, '../logs');
 const LOG_FILE = path.join(LOGS_DIR, 'device-stream.log');
+const VERSION_FILE = path.join(__dirname, '../app/src/main/assets/version.json');
+
+function getVersionInfo() {
+    try {
+        if (fs.existsSync(VERSION_FILE)) {
+            return JSON.parse(fs.readFileSync(VERSION_FILE, 'utf8'));
+        }
+    } catch (e) {
+        console.error(`${COLORS.RED}[Error] Failed to read version.json: ${e.message}${COLORS.RESET}`);
+    }
+    return {
+        version: "1.0.2",
+        fullVersion: "v1.0.2+build.d65d520",
+        buildTimestamp: "2026-09-30T13:01:33Z"
+    };
+}
 
 // Ensure logs directory exists
 if (!fs.existsSync(LOGS_DIR)) {
@@ -1585,50 +1601,155 @@ function handleRequest(req, res) {
         }
     }
 
-    // GET /
-    if (req.method === 'GET' && reqPath === '/') {
+    // GET /download or GET /
+    if (req.method === 'GET' && (reqPath === '/download' || reqPath === '/')) {
         const port = req.socket.localPort || DEFAULT_PORT;
+        const v = getVersionInfo();
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(`<!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>MDrive Telemetry & APK Distribution</title>
+    <title>Download MDrive</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 30px 20px; background: #0f172a; color: #f8fafc; margin: 0; }
-        .card { background: #1e293b; padding: 28px; border-radius: 16px; max-width: 520px; margin: 0 auto; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3); }
-        h1 { font-size: 22px; margin-top: 0; color: #38bdf8; display: flex; align-items: center; gap: 8px; }
-        p { color: #94a3b8; font-size: 14px; line-height: 1.5; }
-        .btn-group { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
-        .btn { display: block; text-align: center; background: #0284c7; color: white; padding: 14px 20px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px; transition: background 0.2s; }
-        .btn:hover { background: #0369a1; }
-        .btn-telemetry { background: #16a34a; }
-        .btn-telemetry:hover { background: #15803d; }
-        .info-box { background: #0f172a; padding: 14px; border-radius: 8px; font-size: 13px; color: #cbd5e1; margin-top: 20px; border-left: 4px solid #38bdf8; }
-        .info-box code { color: #38bdf8; font-family: monospace; }
-        .status { margin-top: 20px; font-size: 12px; color: #64748b; text-align: center; }
+        :root {
+            --primary: #38bdf8;
+            --primary-hover: #0ea5e9;
+            --success: #22c55e;
+            --success-hover: #16a34a;
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+        }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            background: var(--bg); 
+            color: var(--text); 
+            margin: 0; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .card { 
+            background: var(--card-bg); 
+            padding: 40px; 
+            border-radius: 24px; 
+            max-width: 480px; 
+            width: 100%;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+        .icon {
+            width: 80px;
+            height: 80px;
+            background: var(--primary);
+            border-radius: 20px;
+            margin: 0 auto 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            color: var(--bg);
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
+        }
+        h1 { font-size: 32px; font-weight: 800; margin: 0 0 8px; letter-spacing: -0.025em; }
+        .tagline { color: var(--text-muted); font-size: 16px; margin-bottom: 32px; }
+        
+        .version-info {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 32px;
+            text-align: left;
+            font-size: 13px;
+            border: 1px solid var(--border);
+        }
+        .version-info div { margin-bottom: 4px; display: flex; justify-content: space-between; }
+        .version-info div:last-child { margin-bottom: 0; }
+        .version-info span { color: var(--text-muted); }
+        .version-info b { color: var(--primary); font-family: ui-monospace, monospace; }
+
+        .btn-group { display: flex; flex-direction: column; gap: 16px; }
+        .btn { 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            gap: 10px;
+            padding: 16px 24px; 
+            border-radius: 14px; 
+            text-decoration: none; 
+            font-weight: 700; 
+            font-size: 16px; 
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-primary { 
+            background: var(--primary); 
+            color: var(--bg); 
+        }
+        .btn-primary:hover { 
+            background: var(--primary-hover); 
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(56, 189, 248, 0.4);
+        }
+        .btn-secondary { 
+            background: transparent; 
+            color: var(--text);
+            border: 2px solid var(--border);
+        }
+        .btn-secondary:hover { 
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--text-muted);
+        }
+        .btn-telemetry { 
+            background: var(--success); 
+            color: var(--bg);
+        }
+        .btn-telemetry:hover { 
+            background: var(--success-hover); 
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(34, 197, 94, 0.4);
+        }
+
+        .footer { margin-top: 32px; font-size: 12px; color: var(--text-muted); }
+        .footer code { background: rgba(255, 255, 255, 0.1); padding: 2px 6px; border-radius: 4px; color: var(--primary); }
     </style>
 </head>
 <body>
     <div class="card">
-        <h1>MDrive Control & Telemetry</h1>
-        <p>Server Status: <strong style="color:#4ade80;">Online</strong> (Host: <code>${serverIp}:${port}</code>)</p>
+        <div class="icon">M</div>
+        <h1>MDrive</h1>
+        <p class="tagline">Aggregated Multi-Account Cloud Storage</p>
         
+        <div class="version-info">
+            <div><span>Version</span> <b>${v.version}</b></div>
+            <div><span>Full Build</span> <b>${v.fullVersion}</b></div>
+            <div><span>Build Date</span> <b>${v.buildTimestamp}</b></div>
+        </div>
+
         <div class="btn-group">
-            <a class="btn btn-telemetry" href="mdrive://telemetry?ip=${serverIp}&port=${port}">🔗 Connect MDrive App to Telemetry</a>
-            <a class="btn" href="/mdrive.apk">📥 Download mdrive.apk</a>
-            <a class="btn" style="background:#475569;" href="/api/config">⚙️ View Config JSON (/api/config)</a>
+            <a class="btn btn-primary" href="/mdrive.apk">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                Download APK
+            </a>
+            <a class="btn btn-telemetry" href="mdrive://telemetry?ip=${serverIp}&port=${port}">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                Connect Telemetry
+            </a>
+            <a class="btn btn-secondary" href="/api/config">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                View Config
+            </a>
         </div>
 
-        <div class="info-box">
-            <strong>How to connect telemetry:</strong><br>
-            • Tap the green button above on your mobile device.<br>
-            • Or in MDrive app, tap the top <em>📡 Telemetry</em> bar and enter <code>${serverIp}</code>.<br>
-            • Or scan the QR code displayed in the server terminal with Google Lens.
+        <div class="footer">
+            Server: <code>${serverIp}:${port}</code>
         </div>
-
-        <div class="status">Server IP: ${serverIp} | Telemetry endpoint: /api/log</div>
     </div>
 </body>
 </html>`);
@@ -1700,15 +1821,15 @@ function printStartupBanner(ip, port) {
     console.log(`${COLORS.GREEN}  ✔ Server running on: http://${ip}:${port}${COLORS.RESET}`);
     console.log(`  ✔ Log files stored in: ${LOG_FILE}\n`);
 
-    const apkUrl = `http://${ip}:${port}/mdrive.apk`;
+    const downloadUrl = `http://${ip}:${port}/download`;
     const configUrl = `http://${ip}:${port}/api/config`;
 
-    console.log(`${COLORS.CYAN}[1] Local APK Download URL: ${apkUrl}${COLORS.RESET}`);
+    console.log(`${COLORS.CYAN}[1] App Download Page: ${downloadUrl}${COLORS.RESET}`);
     try {
-        console.log(generateQRCodeAscii(apkUrl).trimEnd());
+        console.log(generateQRCodeAscii(downloadUrl).trimEnd());
     } catch (e) {
         if (qrcode) {
-            qrcode.generate(apkUrl, { small: true });
+            qrcode.generate(downloadUrl, { small: true });
         } else {
             console.log(`    (Failed to generate QR code: ${e.message})`);
         }
