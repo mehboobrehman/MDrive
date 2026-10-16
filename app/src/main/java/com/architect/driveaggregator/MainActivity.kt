@@ -219,8 +219,9 @@ class MainActivity : AppCompatActivity() {
                         if (result.isSuccess) {
                             Toast.makeText(this@MainActivity, "Authentication successful!", Toast.LENGTH_LONG).show()
                         } else {
-                            val failureMessage = result.exceptionOrNull()?.message
-                            val friendlyMessage = if (failureMessage?.contains("invalid_client") == true) {
+                            val exception = result.exceptionOrNull()
+                            val failureMessage = exception?.message ?: exception?.javaClass?.simpleName ?: "Unknown error"
+                            val friendlyMessage = if (failureMessage.contains("invalid_client", ignoreCase = true)) {
                                 "Google sign-in failed: invalid_client — verify GOOGLE_CLIENT_ID in local.properties and the OAuth client in Google Cloud Console"
                             } else {
                                 "Authentication failed: $failureMessage"

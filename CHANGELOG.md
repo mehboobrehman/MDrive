@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.5] - 2026-10-16
+- Bump version to 1.0.5 (versionCode 10005).
+- Fixed OAuth redirect error toast showing 'Authentication failed: Null' by implementing clean, user-friendly error handling.
+
 ## [1.0.4] - 2026-10-16
 - Bump version to 1.0.4 (versionCode 10004).
 - Release v1.0.4 with storage aggregation and OAuth stability improvements.
