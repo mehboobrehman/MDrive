@@ -8,6 +8,8 @@ import okhttp3.Request
 import org.json.JSONObject
 import java.io.IOException
 import java.util.Base64
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
 
 import javax.inject.Inject
@@ -30,7 +32,7 @@ class DefaultOAuthNetworkClient @Inject constructor(
         private const val USERINFO_ENDPOINT = "https://www.googleapis.com/oauth2/v3/userinfo"
     }
 
-    override suspend fun exchangeCodeForTokens(authCode: String, codeVerifier: String?): NetworkTokenResponse {
+    override suspend fun exchangeCodeForTokens(authCode: String, codeVerifier: String?): NetworkTokenResponse = withContext(Dispatchers.IO) {
         val formBuilder = FormBody.Builder()
             .add("grant_type", "authorization_code")
             .add("code", authCode)
@@ -64,7 +66,7 @@ class DefaultOAuthNetworkClient @Inject constructor(
 
             val accountId = extractAccountId(idToken, accessToken)
 
-            return NetworkTokenResponse(
+            NetworkTokenResponse(
                 accountId = accountId,
                 accessToken = accessToken,
                 refreshToken = refreshToken,
@@ -73,7 +75,7 @@ class DefaultOAuthNetworkClient @Inject constructor(
         }
     }
 
-    override suspend fun refreshAccessToken(refreshToken: String): NetworkRefreshResponse {
+    override suspend fun refreshAccessToken(refreshToken: String): NetworkRefreshResponse = withContext(Dispatchers.IO) {
         val formBuilder = FormBody.Builder()
             .add("grant_type", "refresh_token")
             .add("refresh_token", refreshToken)
@@ -98,7 +100,7 @@ class DefaultOAuthNetworkClient @Inject constructor(
             val expiresInSeconds = json.optLong("expires_in", 3600L)
             val newRefreshToken = json.optString("refresh_token").takeIf { it.isNotBlank() }
 
-            return NetworkRefreshResponse(
+            NetworkRefreshResponse(
                 accessToken = accessToken,
                 expiresInSeconds = expiresInSeconds,
                 refreshToken = newRefreshToken
@@ -106,7 +108,7 @@ class DefaultOAuthNetworkClient @Inject constructor(
         }
     }
 
-    override suspend fun revokeToken(token: String): Boolean {
+    override suspend fun revokeToken(token: String): Boolean = withContext(Dispatchers.IO) {
         val formBuilder = FormBody.Builder()
             .add("token", token)
 
@@ -115,7 +117,7 @@ class DefaultOAuthNetworkClient @Inject constructor(
             .post(formBuilder.build())
             .build()
 
-        return try {
+        try {
             okHttpClient.newCall(request).execute().use { response ->
                 response.isSuccessful
             }
