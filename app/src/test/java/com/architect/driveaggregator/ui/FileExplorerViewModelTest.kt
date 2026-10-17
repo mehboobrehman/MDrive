@@ -73,7 +73,7 @@ class FileExplorerViewModelTest {
 
     @Test
     fun initiatesUploadAndAddsTransferProgress() {
-        viewModel.initiateUpload("TestArchive.zip", 10 * 1024 * 1024L, "application/zip")
+        viewModel.initiateUpload("TestArchive.zip", 10 * 1024 * 1024L, "application/zip", "/sdcard/Download/TestArchive.zip")
         val state = viewModel.uiState.value
         assertTrue(state.transfers.isNotEmpty())
         assertEquals("TestArchive.zip", state.transfers[0].fileName)

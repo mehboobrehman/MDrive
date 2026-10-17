@@ -33,10 +33,10 @@ import com.architect.driveaggregator.ui.viewmodel.FileExplorerViewModel
 @Composable
 fun FileExplorerScreen(
     viewModel: FileExplorerViewModel,
-    onNavigateBack: () -> Unit = {}
+    onNavigateBack: () -> Unit = {},
+    onLaunchFilePicker: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var showUploadDialog by remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -76,8 +76,8 @@ fun FileExplorerScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    AgentLogger.logEvent("INFO", "ACTION", "BUTTON_CLICK", "Clicked Upload Virtual File FAB")
-                    showUploadDialog = true
+                    AgentLogger.logEvent("INFO", "ACTION", "BUTTON_CLICK", "Clicked Upload Virtual File FAB - Launching File Picker")
+                    onLaunchFilePicker()
                 },
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
@@ -198,15 +198,7 @@ fun FileExplorerScreen(
         }
     }
 
-    if (showUploadDialog) {
-        UploadVirtualFileDialog(
-            onDismiss = { showUploadDialog = false },
-            onUpload = { name, size, mime ->
-                viewModel.initiateUpload(name, size, mime)
-                showUploadDialog = false
-            }
-        )
-    }
+
 }
 
 @Composable
@@ -590,58 +582,4 @@ fun ProgressTrackerCard(
     }
 }
 
-@Composable
-fun UploadVirtualFileDialog(
-    onDismiss: () -> Unit,
-    onUpload: (String, Long, String) -> Unit
-) {
-    var fileName by remember { mutableStateOf("Document_Archive.zip") }
-    var fileSizeMb by remember { mutableStateOf("25") }
-    var mimeType by remember { mutableStateOf("application/zip") }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Upload Virtual File (Chunked)") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = fileName,
-                    onValueChange = { fileName = it },
-                    label = { Text("File Name") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = fileSizeMb,
-                    onValueChange = { fileSizeMb = it },
-                    label = { Text("Size (MB)") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = mimeType,
-                    onValueChange = { mimeType = it },
-                    label = { Text("MIME Type") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    AgentLogger.logEvent("INFO", "ACTION", "BUTTON_CLICK", "Clicked Start Upload & Sharding: $fileName", mapOf("name" to fileName, "sizeMb" to fileSizeMb, "mimeType" to mimeType))
-                    val sizeBytes = (fileSizeMb.toLongOrNull() ?: 10L) * 1024 * 1024
-                    onUpload(fileName, sizeBytes, mimeType)
-                }
-            ) {
-                Text("Start Upload & Sharding")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
-    )
-}

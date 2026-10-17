@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.architect.driveaggregator.data.AppDatabase
 import com.architect.driveaggregator.data.VirtualFileEntity
+import com.architect.driveaggregator.data.VirtualFileWithShardStats
 import com.architect.driveaggregator.engine.VirtualDriveEngine
 import com.architect.driveaggregator.telemetry.AgentLogger
 import com.architect.driveaggregator.ui.model.TransferProgressItem
@@ -60,19 +61,18 @@ class FileExplorerViewModel @Inject constructor(
         loadFilesJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                database.sagaTransactionDao().observeAllVirtualFiles().collect { entities ->
+                database.sagaTransactionDao().observeAllVirtualFilesWithStats().collect { results ->
                     try {
-                        val items = entities.map { entity ->
-                            val shards = database.sagaTransactionDao().getShardsForVirtualFile(entity.virtualFileId)
-                            val completedShards = shards.count { it.uploadState == "COMPLETED" }
+                        val items = results.map { result ->
+                            val entity = result.virtualFile
                             VirtualFileItem(
                                 virtualFileId = entity.virtualFileId,
                                 fileName = entity.fileName,
                                 fileSize = entity.fileSize,
                                 mimeType = entity.mimeType,
                                 sagaState = entity.sagaState,
-                                uploadedShardsCount = completedShards,
-                                totalShardsCount = shards.size.coerceAtLeast(1),
+                                uploadedShardsCount = result.completedShardsCount,
+                                totalShardsCount = result.totalShardsCount.coerceAtLeast(1),
                                 createdAt = entity.createdAt
                             )
                         }
@@ -123,7 +123,7 @@ class FileExplorerViewModel @Inject constructor(
         _uiState.update { it.copy(snackbarMessage = null) }
     }
 
-    fun initiateUpload(fileName: String, fileSize: Long, mimeType: String, filePath: String = "/sdcard/Download/dummy.zip") {
+    fun initiateUpload(fileName: String, fileSize: Long, mimeType: String, filePath: String) {
         val transferId = "tx_up_" + UUID.randomUUID().toString().take(8)
         val virtualFileId = "vf_" + UUID.randomUUID().toString().take(8)
         val chunkSize = BuildConfig.CHUNK_SIZE_BYTES.coerceAtLeast(1)
@@ -164,15 +164,26 @@ class FileExplorerViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val finalFilePath = withContext(Dispatchers.IO) {
-                    val file = java.io.File(filePath)
-                    if (!file.exists()) {
-                        val cacheFile = java.io.File(getApplication<Application>().cacheDir, fileName)
-                        java.io.RandomAccessFile(cacheFile, "rw").use { raf ->
-                            raf.setLength(fileSize)
+                    val context = getApplication<Application>()
+                    if (filePath.startsWith("content://")) {
+                        val cacheFile = java.io.File(context.cacheDir, fileName)
+                        context.contentResolver.openInputStream(android.net.Uri.parse(filePath))?.use { input ->
+                            cacheFile.outputStream().use { output ->
+                                input.copyTo(output)
+                            }
                         }
                         cacheFile.absolutePath
                     } else {
-                        filePath
+                        val file = java.io.File(filePath)
+                        if (!file.exists()) {
+                            val cacheFile = java.io.File(context.cacheDir, fileName)
+                            java.io.RandomAccessFile(cacheFile, "rw").use { raf ->
+                                raf.setLength(fileSize)
+                            }
+                            cacheFile.absolutePath
+                        } else {
+                            filePath
+                        }
                     }
                 }
 

@@ -6,6 +6,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
+import com.architect.driveaggregator.data.VirtualFileWithShardStats
 
 /**
  * Data Access Object for managing Saga Transaction Ledger operations (VirtualFiles and FileShards)
@@ -46,6 +47,17 @@ interface SagaTransactionDao {
 
     @Query("SELECT * FROM virtual_files WHERE virtualFileId = :virtualFileId")
     fun observeVirtualFile(virtualFileId: String): Flow<VirtualFileEntity?>
+
+    @Query("""
+        SELECT vf.*, 
+               COUNT(fs.shardId) as totalShardsCount,
+               CAST(SUM(CASE WHEN fs.uploadState = 'COMPLETED' THEN 1 ELSE 0 END) AS INTEGER) as completedShardsCount
+        FROM virtual_files vf
+        LEFT JOIN file_shards fs ON vf.virtualFileId = fs.virtualFileId
+        GROUP BY vf.virtualFileId
+        ORDER BY vf.createdAt DESC
+    """)
+    fun observeAllVirtualFilesWithStats(): Flow<List<VirtualFileWithShardStats>>
 
     @Query("SELECT * FROM file_shards WHERE virtualFileId = :virtualFileId ORDER BY shardIndex ASC")
     suspend fun getShardsForVirtualFile(virtualFileId: String): List<FileShardEntity>
