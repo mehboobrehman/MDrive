@@ -14,11 +14,14 @@ import com.architect.driveaggregator.engine.LinkedAccount
 import com.architect.driveaggregator.engine.VirtualDriveEngine
 import com.architect.driveaggregator.security.SecureTokenVault
 import com.architect.driveaggregator.telemetry.AgentLogger
-import com.architect.driveaggregator.upload.GoogleResumableUploadManager
+import com.architect.driveaggregator.security.EncryptionManager
 import kotlinx.coroutines.delay
+import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileInputStream
+import java.io.FileOutputStream
 import java.io.IOException
+import java.security.SecretKey
 
 /**
  * SyncOrchestrator coordinates Saga DB transactions, SecureDistributedEngine (VirtualDriveEngine),
@@ -30,6 +33,7 @@ class SyncOrchestrator(
     private val database: AppDatabase,
     private val virtualDriveEngine: VirtualDriveEngine,
     private val uploadManager: GoogleResumableUploadManager,
+    private val encryptionManager: EncryptionManager,
     private val context: Context
 ) {
     companion object {
@@ -174,18 +178,23 @@ class SyncOrchestrator(
 
             val shardFiles = mutableMapOf<String, File>()
             try {
-                allocations.forEach { allocation ->
-                    val shardId = "${virtualFileId}_shard_${allocation.chunkIndex}"
-                    val shardFile = File(context.cacheDir, shardId)
-                    allocation.chunkMeta.dataBytes?.let { bytes ->
-                        shardFile.writeBytes(bytes)
-                    } ?: run {
-                        val chunkBytes = ByteArray(allocation.chunkMeta.size.toInt())
-                        FileInputStream(file).use { fis ->
-                            fis.skip(allocation.chunkMeta.offset)
-                            fis.read(chunkBytes)
+                val userPassphrase = "dummypassphraseyettobeobtained"
+                val secretKey = encryptionManager.getOrCreateMasterKey(userPassphrase.toCharArray())
+
+                for (allocation in allocations) {
+                    val shardId = allocation.shardId
+                    val shardFile = File(context.cacheDir, "${virtualFileId}_${shardId}.enc")
+
+                    val chunkBytes = ByteArray(allocation.chunkMeta.size.toInt())
+                    FileInputStream(file).use { fis ->
+                        fis.skip(allocation.chunkMeta.offset)
+                        fis.read(chunkBytes)
+                    }
+
+                    BufferedOutputStream(FileOutputStream(shardFile)).use { fos ->
+                        encryptionManager.wrapEncryptedOutputStream(fos, secretKey).use { eos ->
+                            eos.write(chunkBytes)
                         }
-                        shardFile.writeBytes(chunkBytes)
                     }
                     shardFiles[shardId] = shardFile
                 }

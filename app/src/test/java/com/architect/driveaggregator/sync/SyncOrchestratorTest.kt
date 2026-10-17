@@ -3,22 +3,22 @@ package com.architect.driveaggregator.sync
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
-import com.architect.driveaggregator.auth.DefaultOAuthNetworkClient
-import com.architect.driveaggregator.auth.GoogleOAuthManager
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.architect.driveaggregator.data.AppDatabase
 import com.architect.driveaggregator.engine.VirtualDriveEngine
+import com.architect.driveaggregator.auth.GoogleOAuthManager
+import com.architect.driveaggregator.auth.DefaultOAuthNetworkClient
 import com.architect.driveaggregator.security.SecureTokenVault
-import com.architect.driveaggregator.upload.GoogleResumableUploadManager
-import java.io.File
+import com.architect.driveaggregator.security.EncryptionManager
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
+import java.io.File
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class SyncOrchestratorTest {
 
     private lateinit var context: Context
@@ -27,6 +27,7 @@ class SyncOrchestratorTest {
     private lateinit var tokenVault: SecureTokenVault
     private lateinit var networkClient: DefaultOAuthNetworkClient
     private lateinit var oauthManager: GoogleOAuthManager
+    private lateinit var encryptionManager: EncryptionManager
     private lateinit var uploadManager: GoogleResumableUploadManager
     private lateinit var syncOrchestrator: SyncOrchestrator
     private lateinit var cacheDir: File
@@ -44,13 +45,20 @@ class SyncOrchestratorTest {
         networkClient = DefaultOAuthNetworkClient(tokenVault)
         oauthManager = GoogleOAuthManager(tokenVault, networkClient)
         uploadManager = GoogleResumableUploadManager(database.sagaTransactionDao(), oauthManager)
+        encryptionManager = EncryptionManager(context, tokenVault, fakePrefs)
         cacheDir = File(context.cacheDir, "test_sync_cache_${System.currentTimeMillis()}")
         if (!cacheDir.exists()) {
             cacheDir.mkdirs()
         }
         diskLruCache = com.jakewharton.disklrucache.DiskLruCache.open(cacheDir, 1, 1, 1024 * 1024)
         val cacheManager = com.architect.driveaggregator.cache.CacheManager(diskLruCache)
-        syncOrchestrator = SyncOrchestrator(database, VirtualDriveEngine(database.sagaTransactionDao(), cacheManager = cacheManager), uploadManager, context)
+        syncOrchestrator = SyncOrchestrator(
+            database,
+            VirtualDriveEngine(database.sagaTransactionDao(), cacheManager = cacheManager),
+            uploadManager,
+            encryptionManager,
+            context
+        )
     }
 
     @After
