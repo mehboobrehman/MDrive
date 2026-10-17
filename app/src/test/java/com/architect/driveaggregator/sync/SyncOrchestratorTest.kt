@@ -10,6 +10,7 @@ import com.architect.driveaggregator.auth.GoogleOAuthManager
 import com.architect.driveaggregator.auth.DefaultOAuthNetworkClient
 import com.architect.driveaggregator.security.SecureTokenVault
 import com.architect.driveaggregator.security.EncryptionManager
+import com.architect.driveaggregator.upload.GoogleResumableUploadManager
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.*

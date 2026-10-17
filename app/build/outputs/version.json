@@ -1,8 +1,8 @@
 {
   "version": "1.0.7",
-  "fullVersion": "v1.0.7+build.aaaf428",
-  "commitHash": "aaaf428",
-  "buildTimestamp": "2026-10-17T19:44:44Z",
+  "fullVersion": "v1.0.7+build.d5774f1",
+  "commitHash": "d5774f1",
+  "buildTimestamp": "2026-10-17T20:07:28Z",
   "environment": "development",
   "versionCode": 10007
 }

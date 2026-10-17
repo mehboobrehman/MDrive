@@ -15,13 +15,17 @@ import com.architect.driveaggregator.engine.VirtualDriveEngine
 import com.architect.driveaggregator.security.SecureTokenVault
 import com.architect.driveaggregator.telemetry.AgentLogger
 import com.architect.driveaggregator.security.EncryptionManager
-import kotlinx.coroutines.delay
+import com.architect.driveaggregator.BuildConfig
+import com.architect.driveaggregator.upload.GoogleResumableUploadManager
+import com.architect.driveaggregator.upload.UploadTask
+import com.architect.driveaggregator.upload.UploadWorkerQueue
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
-import java.io.IOException
-import java.security.SecretKey
+import java.util.UUID
 
 /**
  * SyncOrchestrator coordinates Saga DB transactions, SecureDistributedEngine (VirtualDriveEngine),
@@ -36,6 +40,11 @@ class SyncOrchestrator(
     private val encryptionManager: EncryptionManager,
     private val context: Context
 ) {
+    private val uploadWorkerQueue = UploadWorkerQueue(
+        uploadManager = uploadManager,
+        globalMaxConcurrency = BuildConfig.MAX_PARALLEL_UPLOADS
+    )
+    
     companion object {
         private const val TAG = "SyncOrchestrator"
         private const val MAX_RETRIES = 5
@@ -108,65 +117,23 @@ class SyncOrchestrator(
 
         val sagaDao = database.sagaTransactionDao()
 
-        // 1. Registration Phase
-        onProgress(5, "Registering virtual file...")
-        Log.i(TAG, "Step 1: Registration for file: ${file.name}")
-        
-        val virtualFile = VirtualFileEntity(
-            virtualFileId = virtualFileId,
-            fileName = file.name,
-            fileSize = file.length(),
-            mimeType = "application/octet-stream",
-            sagaState = "PENDING",
-            createdAt = System.currentTimeMillis(),
-            updatedAt = System.currentTimeMillis()
-        )
-        sagaDao.insertVirtualFile(virtualFile)
-        sagaDao.updateSagaState(virtualFileId, "STARTED")
-
         try {
-            // 2. Sharding Phase
-            onProgress(20, "Sharding file into distributed fragments...")
-            Log.i(TAG, "Step 2: Sharding file ${file.name}")
-            
-            AgentLogger.logEvent(
-                level = "INFO",
-                category = "SYNC",
-                event = "SHARDING_START",
-                message = "Sharding file for distributed sync: ${file.name}",
-                payload = mapOf(
-                    "virtualFileId" to virtualFileId,
-                    "fileName" to file.name,
-                    "fileSize" to file.length()
-                )
-            )
+            // 1. Registration Phase
+            onProgress(5, "Registering virtual file...")
+            Log.i(TAG, "Step 1: Registering virtual file $virtualFileId")
 
-            sagaDao.updateSagaState(virtualFileId, "SHARDING")
-
-            // Get linked accounts from SecureTokenVault
-            val secureTokenVault = SecureTokenVault(context)
-            val accountIds = secureTokenVault.getAllAccountIds().ifEmpty { listOf("mock_acc_default") }
-            val linkedAccounts = accountIds.map { id ->
-                LinkedAccount(accountId = id, totalBytes = 15L * 1024 * 1024 * 1024, usedBytes = 0L, isAvailable = true)
+            val accounts = virtualDriveEngine.getLinkedAccounts()
+            if (accounts.isEmpty()) {
+                throw IllegalStateException("No Google Drive accounts linked. Please link at least one account to sync.")
             }
 
-            val chunks = virtualDriveEngine.planFileChunking(file)
-            val allocations = virtualDriveEngine.generateAllocationPlan(chunks, linkedAccounts)
-
-            AgentLogger.logEvent(
-                level = "INFO",
-                category = "SYNC",
-                event = "SHARDS_ALLOCATED",
-                message = "Shards planned and allocated: ${allocations.size} shards",
-                payload = mapOf(
-                    "virtualFileId" to virtualFileId,
-                    "shardCount" to allocations.size,
-                    "accounts" to linkedAccounts.map { it.accountId }
-                )
+            val allocations = virtualDriveEngine.allocateShards(
+                virtualFileId = virtualFileId,
+                fileSize = file.length(),
+                accounts = accounts
             )
 
-            // Save shards and virtual file via VirtualDriveEngine helper
-            virtualDriveEngine.prepareVirtualFileUploadTransaction(
+            sagaDao.insertTransaction(
                 virtualFileId = virtualFileId,
                 fileName = file.name,
                 fileSize = file.length(),
@@ -214,9 +181,27 @@ class SyncOrchestrator(
                     )
                 )
 
-                val success = uploadManager.executeVirtualFileSaga(virtualFileId, shardFiles)
-                if (!success) {
-                    throw RuntimeException("GoogleResumableUploadManager saga execution failed.")
+                val uploadTasks = shards.map { shard ->
+                    val f = shardFiles[shard.shardId]
+                        ?: throw IllegalArgumentException("Data file not provided for shard: ${shard.shardId}")
+                    
+                    UploadTask(
+                        taskId = shard.shardId,
+                        virtualFileId = virtualFileId,
+                        shard = shard,
+                        dataSourceFile = f
+                    )
+                }
+
+                uploadWorkerQueue.enqueueAll(uploadTasks)
+                
+                // Wait for completion
+                withContext(Dispatchers.IO) {
+                    while (true) {
+                        val stats = uploadWorkerQueue.getStats()
+                        if (stats.activeUploadsCount == 0 && stats.queuedTasksCount == 0) break
+                        kotlinx.coroutines.delay(100L)
+                    }
                 }
 
                 // 4. Saga Commit Phase
@@ -233,6 +218,7 @@ class SyncOrchestrator(
                         "fileName" to file.name
                     )
                 )
+                sagaDao.updateSagaState(virtualFileId, "COMMITTED")
             } finally {
                 // Cleanup local temp shard files
                 shardFiles.values.forEach { 
