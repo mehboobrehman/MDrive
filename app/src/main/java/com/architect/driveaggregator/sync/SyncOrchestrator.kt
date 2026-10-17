@@ -172,61 +172,67 @@ class SyncOrchestrator(
 
             val shards = sagaDao.getShardsForVirtualFile(virtualFileId)
 
-            // Map each shard to its temporary data file slice
             val shardFiles = mutableMapOf<String, File>()
-            allocations.forEach { allocation ->
-                val shardId = "${virtualFileId}_shard_${allocation.chunkIndex}"
-                val shardFile = File(context.cacheDir, shardId)
-                allocation.chunkMeta.dataBytes?.let { bytes ->
-                    shardFile.writeBytes(bytes)
-                } ?: run {
-                    val chunkBytes = ByteArray(allocation.chunkMeta.size.toInt())
-                    FileInputStream(file).use { fis ->
-                        fis.skip(allocation.chunkMeta.offset)
-                        fis.read(chunkBytes)
+            try {
+                allocations.forEach { allocation ->
+                    val shardId = "${virtualFileId}_shard_${allocation.chunkIndex}"
+                    val shardFile = File(context.cacheDir, shardId)
+                    allocation.chunkMeta.dataBytes?.let { bytes ->
+                        shardFile.writeBytes(bytes)
+                    } ?: run {
+                        val chunkBytes = ByteArray(allocation.chunkMeta.size.toInt())
+                        FileInputStream(file).use { fis ->
+                            fis.skip(allocation.chunkMeta.offset)
+                            fis.read(chunkBytes)
+                        }
+                        shardFile.writeBytes(chunkBytes)
                     }
-                    shardFile.writeBytes(chunkBytes)
+                    shardFiles[shardId] = shardFile
                 }
-                shardFiles[shardId] = shardFile
-            }
 
-            // 3. Distributed Upload Phase via GoogleResumableUploadManager with saga support
-            onProgress(40, "Uploading shards across connected Google Drive accounts...")
-            Log.i(TAG, "Step 3: Uploading ${shards.size} shards for file ${file.name}")
+                // 3. Distributed Upload Phase via GoogleResumableUploadManager with saga support
+                onProgress(40, "Uploading shards across connected Google Drive accounts...")
+                Log.i(TAG, "Step 3: Uploading ${shards.size} shards for file ${file.name}")
 
-            AgentLogger.logEvent(
-                level = "INFO",
-                category = "SYNC",
-                event = "UPLOAD_START",
-                message = "Starting distributed upload for $virtualFileId",
-                payload = mapOf(
-                    "virtualFileId" to virtualFileId,
-                    "shardCount" to shardFiles.size
+                AgentLogger.logEvent(
+                    level = "INFO",
+                    category = "SYNC",
+                    event = "UPLOAD_START",
+                    message = "Starting distributed upload for $virtualFileId",
+                    payload = mapOf(
+                        "virtualFileId" to virtualFileId,
+                        "shardCount" to shardFiles.size
+                    )
                 )
-            )
 
-            val success = uploadManager.executeVirtualFileSaga(virtualFileId, shardFiles)
-            if (!success) {
-                throw RuntimeException("GoogleResumableUploadManager saga execution failed.")
-            }
+                val success = uploadManager.executeVirtualFileSaga(virtualFileId, shardFiles)
+                if (!success) {
+                    throw RuntimeException("GoogleResumableUploadManager saga execution failed.")
+                }
 
-            // Cleanup local temp shard files
-            shardFiles.values.forEach { it.delete() }
+                // 4. Saga Commit Phase
+                onProgress(100, "Sync complete!")
+                Log.i(TAG, "Sync orchestration completed successfully for $virtualFileId")
 
-            // 4. Saga Commit Phase
-            onProgress(100, "Sync complete!")
-            Log.i(TAG, "Sync orchestration completed successfully for $virtualFileId")
-
-            AgentLogger.logEvent(
-                level = "INFO",
-                category = "SYNC",
-                event = "SAGA_COMMIT",
-                message = "Saga transaction committed successfully for $virtualFileId",
-                payload = mapOf(
-                    "virtualFileId" to virtualFileId,
-                    "fileName" to file.name
+                AgentLogger.logEvent(
+                    level = "INFO",
+                    category = "SYNC",
+                    event = "SAGA_COMMIT",
+                    message = "Saga transaction committed successfully for $virtualFileId",
+                    payload = mapOf(
+                        "virtualFileId" to virtualFileId,
+                        "fileName" to file.name
+                    )
                 )
-            )
+            } finally {
+                // Cleanup local temp shard files
+                shardFiles.values.forEach { 
+                    try {
+                        if (it.exists()) it.delete()
+                    } catch (ignored: Exception) {
+                    }
+                }
+            }
 
         } catch (e: Exception) {
             Log.e(TAG, "Sync orchestration failed for $virtualFileId", e)
