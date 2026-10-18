@@ -27,6 +27,29 @@ object DatabaseModule {
 
     @Provides
     @Singleton
+    fun provideSharingLinkDao(
+        database: AppDatabase
+    ): com.architect.driveaggregator.sharing.SharingLinkDao {
+        return database.sharingLinkDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideSharingManager(
+        @ApplicationContext context: Context,
+        sharingLinkDao: com.architect.driveaggregator.sharing.SharingLinkDao
+    ): com.architect.driveaggregator.sharing.SharingManager {
+        return com.architect.driveaggregator.sharing.SharingManager(
+            context = context,
+            sharingLinkDao = sharingLinkDao,
+            tokenProvider = { providerId ->
+                "mock_access_token_${providerId}"
+            }
+        )
+    }
+
+    @Provides
+    @Singleton
     fun provideSagaTransactionDao(
         database: AppDatabase
     ): SagaTransactionDao {
