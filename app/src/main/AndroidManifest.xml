@@ -75,6 +75,11 @@
             android:label="Offline Caching"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
+        <activity
+            android:name=".ui.AiSmartDashboardActivity"
+            android:label="AI Smart Organization"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+
         <service
             android:name=".sync.ForegroundSyncService"
             android:exported="false"

@@ -144,11 +144,21 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        val aiSmartDashboardButton = Button(this).apply {
+            text = "AI Smart Organization Dashboard"
+            setOnClickListener {
+                AgentLogger.logEvent("INFO", "ACTION", "BUTTON_CLICK", "Clicked AI Smart Organization Dashboard button")
+                val intent = Intent(this@MainActivity, com.architect.driveaggregator.ui.AiSmartDashboardActivity::class.java)
+                startActivity(intent)
+            }
+        }
+
         layout.addView(textView)
         layout.addView(loginButton)
         layout.addView(linkedAccountsButton)
         layout.addView(fileExplorerButton)
         layout.addView(advancedSearchButton)
+        layout.addView(aiSmartDashboardButton)
         setContentView(layout)
 
         // Surface degraded secure storage so the user knows tokens are unencrypted
