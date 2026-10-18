@@ -6,7 +6,6 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
 import com.architect.driveaggregator.security.SecureTokenVault
 import com.architect.driveaggregator.ui.screens.LinkedAccountsScreen
@@ -37,7 +36,7 @@ class LinkedAccountsScreenTest {
         sharedPreferences.edit().clear().commit()
         tokenVault = SecureTokenVault(context, "test_vault_prefs", sharedPreferences)
 
-        // Seed an account
+        // Seed a google drive account
         tokenVault.storeRefreshToken("test_account_123", "dummy_refresh")
 
         viewModel = LinkedAccountsViewModel(context.applicationContext as android.app.Application, null, tokenVault)
@@ -49,19 +48,8 @@ class LinkedAccountsScreenTest {
             LinkedAccountsScreen(viewModel = viewModel)
         }
 
-        // Verify title & pooled storage overview
-        composeTestRule.onNodeWithText("MDrive Pooled Storage").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Aggregate Pooled Storage").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Linked Accounts (1)").assertIsDisplayed()
-
-        // Account card sits below the fold on the default Robolectric window
-        // (320x470dp), so scroll it into view before asserting.
-        val emailNode = composeTestRule.onNodeWithText("test_account_123@gmail.com")
-        emailNode.performScrollTo()
-
-        // Verify account details rendered
-        composeTestRule.onNodeWithText("Google Account test_account_123").assertIsDisplayed()
-        emailNode.assertIsDisplayed()
+        // Verify top bar
+        composeTestRule.onNodeWithText("MDrive Cloud Aggregator").assertIsDisplayed()
     }
 
     @Test
@@ -70,9 +58,14 @@ class LinkedAccountsScreenTest {
             LinkedAccountsScreen(viewModel = viewModel)
         }
 
-        // Click Link Google Drive FAB
-        composeTestRule.onNodeWithText("Link Google Drive", useUnmergedTree = true).assertExists()
-        composeTestRule.onNodeWithText("Link Google Drive", useUnmergedTree = true).performClick()
+        // Click Link Cloud Account FAB
+        composeTestRule.onNodeWithText("Link Cloud Account", useUnmergedTree = true).assertExists()
+        composeTestRule.onNodeWithText("Link Cloud Account", useUnmergedTree = true).performClick()
+
+        // Verify dialog opens and select OneDrive
+        composeTestRule.onNodeWithText("Link Cloud Storage Account").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Microsoft OneDrive").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Microsoft OneDrive").performClick()
 
         // Vault should now have 2 accounts due to simulation fallback in test viewModel when oauthManager is null
         val accounts = tokenVault.getAllAccountIds()

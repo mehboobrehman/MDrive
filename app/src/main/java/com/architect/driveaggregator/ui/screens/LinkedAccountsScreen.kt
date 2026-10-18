@@ -10,8 +10,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.architect.driveaggregator.ui.model.AccountStatus
+import com.architect.driveaggregator.ui.model.CloudProviderType
 import com.architect.driveaggregator.ui.model.DriveAccountInfo
 import com.architect.driveaggregator.ui.model.PooledStorageOverview
 import com.architect.driveaggregator.ui.viewmodel.LinkedAccountsUiState
@@ -36,6 +39,7 @@ fun LinkedAccountsScreen(
     onLaunchAuthUrl: (String) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showAddProviderDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.authUrlToLaunch) {
         uiState.authUrlToLaunch?.let { url ->
@@ -44,10 +48,20 @@ fun LinkedAccountsScreen(
         }
     }
 
+    if (showAddProviderDialog) {
+        AddProviderSelectionDialog(
+            onDismiss = { showAddProviderDialog = false },
+            onSelectProvider = { providerType ->
+                showAddProviderDialog = false
+                viewModel.triggerLinkNewAccount(providerType)
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("MDrive Pooled Storage", fontWeight = FontWeight.Bold) },
+                title = { Text("MDrive Cloud Aggregator", fontWeight = FontWeight.Bold) },
                 actions = {
                     IconButton(onClick = {
                         AgentLogger.logEvent("INFO", "ACTION", "BUTTON_CLICK", "Clicked Refresh on Linked Accounts screen")
@@ -65,11 +79,11 @@ fun LinkedAccountsScreen(
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = {
-                    AgentLogger.logEvent("INFO", "ACTION", "BUTTON_CLICK", "Clicked Link Google Drive FAB")
-                    viewModel.triggerLinkNewAccount()
+                    AgentLogger.logEvent("INFO", "ACTION", "BUTTON_CLICK", "Clicked Link Cloud Storage FAB")
+                    showAddProviderDialog = true
                 },
-                icon = { Icon(Icons.Default.Add, contentDescription = "Link Account") },
-                text = { Text("Link Google Drive") }
+                icon = { Icon(Icons.Default.Add, contentDescription = "Link Cloud") },
+                text = { Text("Link Cloud Account") }
             )
         }
     ) { paddingValues ->
@@ -88,12 +102,20 @@ fun LinkedAccountsScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     contentPadding = PaddingValues(top = 16.dp, bottom = 80.dp)
                 ) {
+                    // Primary Account Master Banner (Google ID OAuth Anchor)
+                    item {
+                        PrimaryAccountMasterCard(
+                            primaryAccount = uiState.pooledStorage.accounts.firstOrNull { it.providerType == CloudProviderType.GOOGLE_DRIVE },
+                            onLinkGoogleMaster = { viewModel.triggerLinkNewAccount(CloudProviderType.GOOGLE_DRIVE) }
+                        )
+                    }
+
                     // Pooled Storage Overview Card
                     item {
                         PooledStorageCard(overview = uiState.pooledStorage)
                     }
 
-                    // Section Header
+                    // Section Header for Linked Secondary Accounts
                     item {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -101,14 +123,12 @@ fun LinkedAccountsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Linked Accounts (${uiState.pooledStorage.accounts.size})",
+                                text = "Linked Cloud Accounts (${uiState.pooledStorage.accounts.size})",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
                         }
                     }
-
-
 
                     // Error Banner if any
                     uiState.errorMessage?.let { error ->
@@ -136,10 +156,10 @@ fun LinkedAccountsScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = "No Google Drive accounts linked yet.\nTap 'Link Google Drive' to get started.",
+                                    text = "No cloud storage accounts linked yet.\nTap 'Link Cloud Account' to connect Google Drive, OneDrive, Dropbox, MEGA, Box, or TeraBox.",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(horizontal = 32.dp)
+                                    modifier = Modifier.padding(horizontal = 16.dp)
                                 )
                             }
                         }
@@ -155,6 +175,125 @@ fun LinkedAccountsScreen(
             }
         }
     }
+}
+
+@Composable
+fun PrimaryAccountMasterCard(
+    primaryAccount: DriveAccountInfo?,
+    onLinkGoogleMaster: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Shield,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Primary Master Login (Google ID OAuth)",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+                
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (primaryAccount != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
+                ) {
+                    Text(
+                        text = if (primaryAccount != null) "Active Master" else "Not Signed In",
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        color = if (primaryAccount != null) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            if (primaryAccount != null) {
+                Text(
+                    text = "Authenticated as ${primaryAccount.email}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Text(
+                    text = "Governing secure storage federation and multi-provider token vault.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                )
+            } else {
+                Text(
+                    text = "Authenticate with your Google ID OAuth credential to establish the master session and aggregate secondary platforms.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Button(
+                    onClick = onLinkGoogleMaster,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Text("Sign in with Google ID")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AddProviderSelectionDialog(
+    onDismiss: () -> Unit,
+    onSelectProvider: (CloudProviderType) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Link Cloud Storage Account") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Select cloud platform to bind under your Google ID primary master session:")
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                CloudProviderType.values().forEach { provider ->
+                    OutlinedButton(
+                        onClick = { onSelectProvider(provider) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(provider.displayName, fontWeight = FontWeight.Bold)
+                            Text("Default: ${FileUtils.formatFileSize(provider.defaultQuotaBytes)}", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }
 
 @Composable
@@ -219,7 +358,7 @@ fun PooledStorageCard(overview: PooledStorageOverview) {
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
             Text(
-                text = "${overview.accounts.size} Google Drive account(s) pooled",
+                text = "${overview.accounts.size} cloud account(s) pooled across Google Drive, OneDrive, Dropbox, MEGA, Box & TeraBox",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -284,20 +423,25 @@ fun AccountItemCard(
                             .background(MaterialTheme.colorScheme.primaryContainer),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = account.email.take(1).uppercase(Locale.getDefault()),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            fontWeight = FontWeight.Bold
+                        Icon(
+                            imageVector = Icons.Default.Cloud,
+                            contentDescription = account.providerType.displayName,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(24.dp)
                         )
                     }
 
                     Column {
-                        Text(
-                            text = account.displayName,
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = account.providerType.displayName,
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                         Text(
                             text = account.email,
                             style = MaterialTheme.typography.bodySmall,
