@@ -37,3 +37,10 @@ Robolectric unit tests were POSTing telemetry to the live server (manufacturer/m
 Root-caused invalid_client (401) to the placeholder client id compiled from local.properties.example. getAuthorizationUrl() now throws a descriptive IllegalStateException when the id is blank/placeholder/invalid-looking (never sent to Google), and the OAuth pipeline logs OAUTH_INIT/OAUTH_URL_OPENED/OAUTH_REDIRECT_RECEIVED (parses error+error_description)/OAUTH_TOKEN_EXCHANGE_{START,SUCCESS,FAILED}/OAUTH_MISCONFIGURED. Raw client id is never logged; only "[REDACTED]". UI surfaces Google error cod…
 
 **Impact**: GoogleOAuthManager.kt, MainActivity.kt, LinkedAccountsViewModel.kt, LinkedAccountsScreen.kt, GoogleOAuthManagerTest.kt
+
+## Room Database v4 Schema Migration
+**When**: 2026-10-18 08:57:51
+
+Upgraded Room database from version 3 to 4, adding offline pinning, AI categories, duplicate hash tracking, sharing URLs, primary account session table, and smart recommendations table with robust migration support and unit testing.
+
+**Impact**: AppDatabase.kt, VirtualFileEntity.kt, PrimaryAccountSessionEntity.kt, SmartRecommendationEntity.kt, DAOs, Dagger DatabaseModule

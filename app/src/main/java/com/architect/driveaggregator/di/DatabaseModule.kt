@@ -2,7 +2,9 @@ package com.architect.driveaggregator.di
 
 import android.content.Context
 import com.architect.driveaggregator.data.AppDatabase
+import com.architect.driveaggregator.data.PrimaryAccountSessionDao
 import com.architect.driveaggregator.data.SagaTransactionDao
+import com.architect.driveaggregator.data.SmartRecommendationDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -28,5 +30,21 @@ object DatabaseModule {
         database: AppDatabase
     ): SagaTransactionDao {
         return database.sagaTransactionDao()
+    }
+
+    @Provides
+    @Singleton
+    fun providePrimaryAccountSessionDao(
+        database: AppDatabase
+    ): PrimaryAccountSessionDao {
+        return database.primaryAccountSessionDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideSmartRecommendationDao(
+        database: AppDatabase
+    ): SmartRecommendationDao {
+        return database.smartRecommendationDao()
     }
 }
