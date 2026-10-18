@@ -69,7 +69,7 @@ class FederatedSearchManagerTest {
         whenever(storageProvider.listFiles("")).thenReturn(listOf(cloudFile))
 
         val results = federatedSearchManager.searchRemoteConcurrently(
-            SearchFilter(query = "Report", mimeType = "docx", minSize = 1000L)
+            SearchFilter(query = "Report", mimeType = "wordprocessingml", minSize = 1000L)
         )
 
         assertEquals(1, results.size)

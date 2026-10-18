@@ -135,10 +135,20 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        val advancedSearchButton = Button(this).apply {
+            text = "Advanced Federated Search"
+            setOnClickListener {
+                AgentLogger.logEvent("INFO", "ACTION", "BUTTON_CLICK", "Clicked Advanced Federated Search button")
+                val intent = Intent(this@MainActivity, com.architect.driveaggregator.ui.AdvancedSearchActivity::class.java)
+                startActivity(intent)
+            }
+        }
+
         layout.addView(textView)
         layout.addView(loginButton)
         layout.addView(linkedAccountsButton)
         layout.addView(fileExplorerButton)
+        layout.addView(advancedSearchButton)
         setContentView(layout)
 
         // Surface degraded secure storage so the user knows tokens are unencrypted
