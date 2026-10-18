@@ -17,9 +17,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         VirtualFileEntity::class,
         FileShardEntity::class,
         PrimaryAccountSessionEntity::class,
-        SmartRecommendationEntity::class
+        SmartRecommendationEntity::class,
+        com.architect.driveaggregator.sharing.SharingLinkEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -28,6 +29,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun primaryAccountSessionDao(): PrimaryAccountSessionDao
     abstract fun smartRecommendationDao(): SmartRecommendationDao
     abstract fun virtualFileDao(): VirtualFileDao
+    abstract fun sharingLinkDao(): com.architect.driveaggregator.sharing.SharingLinkDao
 
     companion object {
         @Volatile
@@ -36,11 +38,29 @@ abstract class AppDatabase : RoomDatabase() {
         private const val DATABASE_NAME = "mdrive_saga_ledger.db"
 
         /**
-         * Migration from version 3 to version 4:
-         * 1. Adds new columns to `virtual_files`: is_offline_pinned, ai_category, sha256_hash, share_url, last_synced_timestamp.
-         * 2. Creates `primary_account_session` table.
-         * 3. Creates `smart_recommendations` table.
+         * Migration from version 4 to version 5:
+         * Adds `sharing_links` table.
          */
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `sharing_links` (
+                        `linkId` TEXT NOT NULL,
+                        `virtualFileId` TEXT NOT NULL,
+                        `providerId` TEXT NOT NULL,
+                        `providerFileId` TEXT NOT NULL,
+                        `shareUrl` TEXT NOT NULL,
+                        `permission` TEXT NOT NULL,
+                        `isPublic` INTEGER NOT NULL,
+                        `expiresAt` INTEGER NOT NULL,
+                        `createdAt` INTEGER NOT NULL,
+                        `isRevoked` INTEGER NOT NULL,
+                        `accessCount` INTEGER NOT NULL,
+                        PRIMARY KEY(`linkId`)
+                    )
+                """)
+            }
+        }
         val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // Add new columns to virtual_files if not already present
@@ -148,7 +168,7 @@ abstract class AppDatabase : RoomDatabase() {
                 AppDatabase::class.java,
                 DATABASE_NAME
             )
-                .addMigrations(MIGRATION_3_4, MIGRATION_1_4)
+                .addMigrations(MIGRATION_3_4, MIGRATION_1_4, MIGRATION_4_5)
                 .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
                 .build()
         }
