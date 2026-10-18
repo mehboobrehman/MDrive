@@ -4,6 +4,7 @@ import android.content.Context
 import com.architect.driveaggregator.data.AppDatabase
 import com.architect.driveaggregator.data.SagaTransactionDao
 import com.architect.driveaggregator.auth.GoogleOAuthManager
+import com.architect.driveaggregator.security.EncryptionManager
 import com.architect.driveaggregator.engine.SecureDistributedEngine
 import com.architect.driveaggregator.engine.VirtualDriveEngine
 import com.architect.driveaggregator.sync.SyncOrchestrator
@@ -54,8 +55,9 @@ object EngineModule {
         database: AppDatabase,
         virtualDriveEngine: VirtualDriveEngine,
         uploadManager: GoogleResumableUploadManager,
+        encryptionManager: EncryptionManager,
         @ApplicationContext context: Context
     ): SyncOrchestrator {
-        return SyncOrchestrator(database, virtualDriveEngine, uploadManager, context)
+        return SyncOrchestrator(database, virtualDriveEngine, uploadManager, encryptionManager, context)
     }
 }

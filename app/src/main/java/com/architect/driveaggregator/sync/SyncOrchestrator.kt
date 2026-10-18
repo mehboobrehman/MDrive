@@ -122,18 +122,22 @@ class SyncOrchestrator(
             onProgress(5, "Registering virtual file...")
             Log.i(TAG, "Step 1: Registering virtual file $virtualFileId")
 
-            val accounts = virtualDriveEngine.getLinkedAccounts()
+            val accounts = listOf(
+                LinkedAccount(
+                    accountId = "default_account",
+                    totalBytes = 15L * 1024 * 1024 * 1024,
+                    usedBytes = 0L,
+                    isAvailable = true
+                )
+            )
             if (accounts.isEmpty()) {
                 throw IllegalStateException("No Google Drive accounts linked. Please link at least one account to sync.")
             }
 
-            val allocations = virtualDriveEngine.allocateShards(
-                virtualFileId = virtualFileId,
-                fileSize = file.length(),
-                accounts = accounts
-            )
+            val chunks = virtualDriveEngine.planFileChunking(file)
+            val allocations = virtualDriveEngine.generateAllocationPlan(chunks, accounts)
 
-            sagaDao.insertTransaction(
+            virtualDriveEngine.prepareVirtualFileUploadTransaction(
                 virtualFileId = virtualFileId,
                 fileName = file.name,
                 fileSize = file.length(),
@@ -149,7 +153,7 @@ class SyncOrchestrator(
                 val secretKey = encryptionManager.getOrCreateMasterKey(userPassphrase.toCharArray())
 
                 for (allocation in allocations) {
-                    val shardId = allocation.shardId
+                    val shardId = "${virtualFileId}_shard_${allocation.chunkIndex}"
                     val shardFile = File(context.cacheDir, "${virtualFileId}_${shardId}.enc")
 
                     val chunkBytes = ByteArray(allocation.chunkMeta.size.toInt())

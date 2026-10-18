@@ -55,8 +55,7 @@ class LinkedAccountsScreenTest {
         composeTestRule.onNodeWithText("Linked Accounts (1)").assertIsDisplayed()
 
         // Account card sits below the fold on the default Robolectric window
-        // (320x470dp) once the Link Mock Account content button is added,
-        // so scroll it into view before asserting.
+        // (320x470dp), so scroll it into view before asserting.
         val emailNode = composeTestRule.onNodeWithText("test_account_123@gmail.com")
         emailNode.performScrollTo()
 

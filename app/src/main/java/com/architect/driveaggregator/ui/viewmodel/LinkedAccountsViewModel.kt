@@ -48,7 +48,7 @@ class LinkedAccountsViewModel @Inject constructor(
                 val accountIds = vault.getAllAccountIds()
 
                 // For demonstration or live accounts, let's load accounts info.
-                // If vault has account IDs, we query their quota or mock representative info if offline/mocked.
+                // If vault has account IDs, we query their quota or representative info.
                 val accountsList = accountIds.map { id ->
                     // In a full integration, we query Drive About.get API using the valid access token.
                     // Here we provide account details backed by vault presence and stored or simulated quota stats.
@@ -155,20 +155,6 @@ class LinkedAccountsViewModel @Inject constructor(
 
     fun onAuthUrlConsumed() {
         _uiState.update { it.copy(authUrlToLaunch = null) }
-    }
-
-    fun linkMockAccount() {
-        val mockAccountId = "mock_acc_${java.util.UUID.randomUUID().toString().take(8)}"
-        AgentLogger.logEvent(
-            level = "INFO",
-            category = "ACCOUNT",
-            event = "MOCK_ACCOUNT_LINKED",
-            message = "Mock account linked: $mockAccountId",
-            payload = mapOf("accountId" to mockAccountId)
-        )
-        vault.storeRefreshToken(mockAccountId, "mock_refresh_token")
-        vault.storeAccessToken(mockAccountId, "mock_access_token", System.currentTimeMillis() + 3600000)
-        loadAccounts()
     }
 
     fun unlinkAccount(accountId: String) {

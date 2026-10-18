@@ -7,6 +7,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.architect.driveaggregator.data.AppDatabase
 import com.architect.driveaggregator.engine.VirtualDriveEngine
 import com.architect.driveaggregator.security.SecureTokenVault
+import com.architect.driveaggregator.security.EncryptionManager
 import com.architect.driveaggregator.sync.SyncOrchestrator
 import com.architect.driveaggregator.ui.model.VirtualFileItem
 import com.architect.driveaggregator.ui.viewmodel.FileExplorerViewModel
@@ -49,7 +50,9 @@ class FileExplorerViewModelTest {
         val networkClient = com.architect.driveaggregator.auth.DefaultOAuthNetworkClient(tokenVault)
         val oauthManager = com.architect.driveaggregator.auth.GoogleOAuthManager(tokenVault, networkClient)
         val uploadManager = com.architect.driveaggregator.upload.GoogleResumableUploadManager(database.sagaTransactionDao(), oauthManager)
-        syncOrchestrator = SyncOrchestrator(database, virtualDriveEngine, uploadManager, context)
+        val fakePrefs = context.getSharedPreferences("test_fe_vault", Context.MODE_PRIVATE)
+        val encryptionManager = EncryptionManager(context, tokenVault, fakePrefs)
+        syncOrchestrator = SyncOrchestrator(database, virtualDriveEngine, uploadManager, encryptionManager, context)
 
         viewModel = FileExplorerViewModel(
             context.applicationContext as android.app.Application,

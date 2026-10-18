@@ -63,30 +63,14 @@ fun LinkedAccountsScreen(
             )
         },
         floatingActionButton = {
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                ExtendedFloatingActionButton(
-                    onClick = {
-                        AgentLogger.logEvent("INFO", "ACTION", "BUTTON_CLICK", "Clicked Link Mock Account FAB")
-                        viewModel.linkMockAccount()
-                    },
-                    icon = { Icon(Icons.Default.Add, contentDescription = "Link Mock Account") },
-                    text = { Text("Link Mock Account") },
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                )
-
-                ExtendedFloatingActionButton(
-                    onClick = {
-                        AgentLogger.logEvent("INFO", "ACTION", "BUTTON_CLICK", "Clicked Link Google Drive FAB")
-                        viewModel.triggerLinkNewAccount()
-                    },
-                    icon = { Icon(Icons.Default.Add, contentDescription = "Link Account") },
-                    text = { Text("Link Google Drive") }
-                )
-            }
+            ExtendedFloatingActionButton(
+                onClick = {
+                    AgentLogger.logEvent("INFO", "ACTION", "BUTTON_CLICK", "Clicked Link Google Drive FAB")
+                    viewModel.triggerLinkNewAccount()
+                },
+                icon = { Icon(Icons.Default.Add, contentDescription = "Link Account") },
+                text = { Text("Link Google Drive") }
+            )
         }
     ) { paddingValues ->
         Box(
@@ -124,29 +108,7 @@ fun LinkedAccountsScreen(
                         }
                     }
 
-                    // Link Mock Account action — full-width button in screen content so it is
-                    // reachable without the bottom-right FAB
-                    item {
-                        FilledTonalButton(
-                            onClick = {
-                                AgentLogger.logEvent("INFO", "ACTION", "BUTTON_CLICK", "Clicked Link Mock Account button")
-                                viewModel.linkMockAccount()
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.filledTonalButtonColors(
-                                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onTertiaryContainer
-                            )
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                            Text("Link Mock Account", fontWeight = FontWeight.Bold)
-                        }
-                    }
+
 
                     // Error Banner if any
                     uiState.errorMessage?.let { error ->
