@@ -1,6 +1,7 @@
 package com.architect.driveaggregator.cache
 
 import com.jakewharton.disklrucache.DiskLruCache
+import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
 import javax.inject.Inject
@@ -41,6 +42,34 @@ class CacheManager @Inject constructor(
         } catch (e: Exception) {
             false
         }
+    }
+
+    fun remove(key: String) {
+        try {
+            diskLruCache.remove(sanitizeKey(key))
+        } catch (e: Exception) {
+            // Ignore removal errors
+        }
+    }
+
+    fun clearCache() {
+        try {
+            diskLruCache.delete()
+        } catch (e: Exception) {
+            // Ignore clear errors
+        }
+    }
+
+    fun getCacheSize(): Long {
+        return try {
+            diskLruCache.size()
+        } catch (e: Exception) {
+            0L
+        }
+    }
+
+    fun getMaxSize(): Long {
+        return 50 * 1024 * 1024L // Default 50MB max size as configured in CacheModule
     }
 
     private fun sanitizeKey(key: String): String {

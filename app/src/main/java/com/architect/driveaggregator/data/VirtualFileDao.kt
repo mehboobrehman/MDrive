@@ -6,7 +6,8 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 
 /**
- * DAO for querying and indexing VirtualFileEntity records in Room DB.
+ * DAO for querying and indexing VirtualFileEntity records in Room DB,
+ * including offline pinned files management and status queries.
  */
 @Dao
 interface VirtualFileDao {
@@ -41,4 +42,13 @@ interface VirtualFileDao {
 
     @Query("DELETE FROM virtual_files WHERE virtualFileId = :fileId")
     suspend fun deleteFile(fileId: String)
+
+    @Query("SELECT * FROM virtual_files WHERE is_offline_pinned = 1")
+    suspend fun getOfflinePinnedFiles(): List<VirtualFileEntity>
+
+    @Query("UPDATE virtual_files SET is_offline_pinned = :isPinned WHERE virtualFileId = :fileId")
+    suspend fun setOfflinePinned(fileId: String, isPinned: Boolean)
+
+    @Query("SELECT * FROM virtual_files WHERE virtualFileId = :fileId")
+    suspend fun getFileById(fileId: String): VirtualFileEntity?
 }

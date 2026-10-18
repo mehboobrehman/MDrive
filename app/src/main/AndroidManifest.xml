@@ -70,6 +70,11 @@
             android:label="Advanced Search"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
+        <activity
+            android:name=".ui.OfflineCachingActivity"
+            android:label="Offline Caching"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+
         <service
             android:name=".sync.ForegroundSyncService"
             android:exported="false"

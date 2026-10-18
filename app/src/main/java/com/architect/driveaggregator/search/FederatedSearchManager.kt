@@ -50,7 +50,7 @@ data class FederatedSearchResult(
 @Singleton
 class FederatedSearchManager @Inject constructor(
     private val virtualFileDao: VirtualFileDao,
-    private val storageProviders: Map<CloudProviderType, StorageProvider>
+    private val storageProviders: Map<CloudProviderType, @JvmSuppressWildcards StorageProvider>
 ) {
 
     /**

@@ -5,6 +5,7 @@ import com.architect.driveaggregator.data.AppDatabase
 import com.architect.driveaggregator.data.PrimaryAccountSessionDao
 import com.architect.driveaggregator.data.SagaTransactionDao
 import com.architect.driveaggregator.data.SmartRecommendationDao
+import com.architect.driveaggregator.data.VirtualFileDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -50,9 +51,17 @@ object DatabaseModule {
 
     @Provides
     @Singleton
+    fun provideVirtualFileDao(
+        database: AppDatabase
+    ): VirtualFileDao {
+        return database.virtualFileDao()
+    }
+
+    @Provides
+    @Singleton
     fun provideAiSmartOrganizer(
         @ApplicationContext context: Context,
-        virtualFileDao: com.architect.driveaggregator.data.VirtualFileDao,
+        virtualFileDao: VirtualFileDao,
         smartRecommendationDao: SmartRecommendationDao
     ): com.architect.driveaggregator.ai.AiSmartOrganizer {
         return com.architect.driveaggregator.ai.AiSmartOrganizer(context, virtualFileDao, smartRecommendationDao)
