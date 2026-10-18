@@ -47,4 +47,12 @@ object DatabaseModule {
     ): SmartRecommendationDao {
         return database.smartRecommendationDao()
     }
+
+    @Provides
+    @Singleton
+    fun provideVirtualFileDao(
+        database: AppDatabase
+    ): com.architect.driveaggregator.data.VirtualFileDao {
+        return database.virtualFileDao()
+    }
 }

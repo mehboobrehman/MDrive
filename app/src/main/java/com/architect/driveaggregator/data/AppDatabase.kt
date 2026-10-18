@@ -27,6 +27,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun sagaTransactionDao(): SagaTransactionDao
     abstract fun primaryAccountSessionDao(): PrimaryAccountSessionDao
     abstract fun smartRecommendationDao(): SmartRecommendationDao
+    abstract fun virtualFileDao(): VirtualFileDao
 
     companion object {
         @Volatile
