@@ -103,8 +103,12 @@ class SharingManager(
             }
 
             val token = tokenProvider(providerId)
-            val expiresAt = if (options.expirationDurationMs > 0) {
-                System.currentTimeMillis() + options.expirationDurationMs
+            val expiresAt = if (options.expirationDurationMs != 0L) {
+                if (options.expirationDurationMs < 0) {
+                    System.currentTimeMillis() + options.expirationDurationMs
+                } else {
+                    System.currentTimeMillis() + options.expirationDurationMs
+                }
             } else {
                 0L
             }

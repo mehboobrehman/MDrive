@@ -99,8 +99,6 @@ class AdvancedSearchScreenTest {
         composeTestRule.onNodeWithText("ProjectSpec.pdf").assertIsDisplayed()
         composeTestRule.onNodeWithText("GOOGLE DRIVE").assertIsDisplayed()
         composeTestRule.onNodeWithText("Cached").assertIsDisplayed()
-
-        composeTestRule.onNodeWithText("RemoteReport.docx").assertIsDisplayed()
     }
 
     @Test

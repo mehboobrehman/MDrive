@@ -82,15 +82,17 @@ class SharingUiRobolectricTest {
     }
 
     @Test
-    fun testSharingManagementScreenDisplaysActiveLinks() = runBlocking {
-        sharingManager.generateShareLink(
-            virtualFileId = "file_mgmt_1",
-            providerId = "onedrive",
-            providerFileId = "o_456",
-            options = ShareOptions(permission = "VIEW", isPublic = true, expirationDurationMs = 3600000L)
-        )
+    fun testSharingManagementScreenDisplaysActiveLinks() {
+        runBlocking {
+            sharingManager.generateShareLink(
+                virtualFileId = "file_mgmt_1",
+                providerId = "onedrive",
+                providerFileId = "o_456",
+                options = ShareOptions(permission = "VIEW", isPublic = true, expirationDurationMs = 3600000L)
+            )
 
-        sharingViewModel.loadAllActiveLinks()
+            sharingViewModel.loadAllActiveLinks()
+        }
 
         composeTestRule.setContent {
             SharingManagementScreen(
