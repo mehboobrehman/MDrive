@@ -27,7 +27,7 @@ fun MDriveFileCard(
         onClick = onClick,
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer 
-                             else MaterialTheme.colorScheme.surfaceContainerLow
+                             else MaterialTheme.colorScheme.surfaceVariant
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 4.dp else 1.dp),
         shape = MaterialTheme.shapes.medium,
@@ -62,7 +62,7 @@ fun MDriveFileCard(
             ) {
                 Text(
                     text = title,
-                    style = MaterialTheme.colorScheme.titleMedium,
+                    style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     color = MaterialTheme.colorScheme.onSurface
@@ -70,7 +70,7 @@ fun MDriveFileCard(
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = subtitle,
-                    style = MaterialTheme.colorScheme.bodyMedium,
+                    style = MaterialTheme.typography.bodyMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     color = MaterialTheme.colorScheme.onSurfaceVariant

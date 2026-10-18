@@ -11,7 +11,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import org.mockito.Mockito.*
+import org.mockito.Mockito.mock
 import org.mockito.kotlin.any
 import org.mockito.kotlin.whenever
 
@@ -27,6 +27,7 @@ class FederatedSearchManagerTest {
     fun setUp() {
         virtualFileDao = mock(VirtualFileDao::class.java)
         storageProvider = mock(StorageProvider::class.java)
+        whenever(storageProvider.providerId).thenReturn("GOOGLE_DRIVE")
         storageProviders = mapOf(CloudProviderType.GOOGLE_DRIVE to storageProvider)
         federatedSearchManager = FederatedSearchManager(virtualFileDao, storageProviders)
     }
@@ -35,13 +36,13 @@ class FederatedSearchManagerTest {
     fun testSearchLocal_returnsMappedResults() = runTest {
         val entity = VirtualFileEntity(
             virtualFileId = "file1",
-            providerId = "GOOGLE_DRIVE",
             fileName = "TestDocument.pdf",
             mimeType = "application/pdf",
             fileSize = 1024L,
+            sagaState = "COMMITTED",
             shareUrl = "https://example.com/file1",
             createdAt = 1000L,
-            aiCategory = "Work"
+            aiCategory = "Documents"
         )
         whenever(virtualFileDao.searchFilesAdvanced(any(), any(), any(), any(), any(), any()))
             .thenReturn(listOf(entity))
@@ -81,13 +82,13 @@ class FederatedSearchManagerTest {
     fun testSearchFederated_combinesLocalAndRemote() = runTest {
         val entity = VirtualFileEntity(
             virtualFileId = "local1",
-            providerId = "GOOGLE_DRIVE",
             fileName = "Sheet.xlsx",
             mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             fileSize = 500L,
+            sagaState = "COMMITTED",
             shareUrl = null,
             createdAt = 500L,
-            aiCategory = "Finance"
+            aiCategory = "Documents"
         )
         whenever(virtualFileDao.searchFilesAdvanced(any(), any(), any(), any(), any(), any()))
             .thenReturn(listOf(entity))

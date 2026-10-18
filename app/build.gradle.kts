@@ -213,6 +213,7 @@ dependencies {
     // Google API Client & Drive REST API
     implementation("com.google.api-client:google-api-client-android:2.2.0")
     implementation("com.google.apis:google-api-services-drive:v3-rev20230822-2.0.0")
+    implementation("com.google.code.gson:gson:2.10.1")
 
     // Android Security-Crypto
     implementation("androidx.security:security-crypto:1.1.0-alpha06")

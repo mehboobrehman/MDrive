@@ -90,4 +90,11 @@ interface StorageProvider {
      * Deletes a remote file or shard by its remote file ID.
      */
     suspend fun deleteFile(remoteFileId: String): Boolean
+
+    /**
+     * Lists files from the provider repository.
+     */
+    suspend fun listFiles(folderId: String = ""): List<CloudFile> {
+        return emptyList()
+    }
 }

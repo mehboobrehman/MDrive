@@ -50,9 +50,11 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideVirtualFileDao(
-        database: AppDatabase
-    ): com.architect.driveaggregator.data.VirtualFileDao {
-        return database.virtualFileDao()
+    fun provideAiSmartOrganizer(
+        @ApplicationContext context: Context,
+        virtualFileDao: com.architect.driveaggregator.data.VirtualFileDao,
+        smartRecommendationDao: SmartRecommendationDao
+    ): com.architect.driveaggregator.ai.AiSmartOrganizer {
+        return com.architect.driveaggregator.ai.AiSmartOrganizer(context, virtualFileDao, smartRecommendationDao)
     }
 }

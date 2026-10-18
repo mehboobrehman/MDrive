@@ -65,20 +65,14 @@ class FederatedSearchManager @Inject constructor(
             startTime = filter.startTime,
             endTime = filter.endTime
         )
-        // If providerId filter is specified, filter locally as well
-        val filteredEntities = if (filter.providerId.isNotBlank()) {
-            entities.filter { it.providerId == filter.providerId }
-        } else {
-            entities
-        }
 
-        filteredEntities.map { entity ->
+        entities.map { entity ->
             FederatedSearchResult(
                 fileId = entity.virtualFileId,
                 name = entity.fileName,
                 mimeType = entity.mimeType,
                 sizeBytes = entity.fileSize,
-                providerId = entity.providerId.ifBlank { "LOCAL" },
+                providerId = "LOCAL",
                 providerType = filter.providerType ?: CloudProviderType.GOOGLE_DRIVE,
                 downloadUrl = entity.shareUrl,
                 createdAt = entity.createdAt,
@@ -89,8 +83,7 @@ class FederatedSearchManager @Inject constructor(
     }
 
     /**
-     * Concurrently queries remote cloud providers (or specific providers if filtered) for live results,
-     * applying advanced filtering criteria.
+     * Concurrently queries remote cloud providers for live results matching advanced filtering criteria.
      */
     suspend fun searchRemoteConcurrently(
         filter: SearchFilter,
@@ -108,39 +101,25 @@ class FederatedSearchManager @Inject constructor(
                 if (provider == null) return@async emptyList<FederatedSearchResult>()
                 try {
                     val remoteFiles = provider.listFiles("")
-                    remoteFiles.mapNotNull { cloudFile ->
-                        val mimeType = cloudFile.mimeType ?: ""
-                        val size = cloudFile.sizeBytes
-                        val created = cloudFile.createdAt
-
-                        if (filter.query.isNotBlank() && !cloudFile.name.contains(filter.query, ignoreCase = true)) {
-                            return@mapNotNull null
-                        }
-                        if (filter.mimeType.isNotBlank() && !mimeType.contains(filter.mimeType, ignoreCase = true)) {
-                            return@mapNotNull null
-                        }
-                        if (filter.minSize > 0 && size < filter.minSize) {
-                            return@mapNotNull null
-                        }
-                        if (filter.maxSize > 0 && size > filter.maxSize) {
-                            return@mapNotNull null
-                        }
-                        if (filter.startTime > 0 && created < filter.startTime) {
-                            return@mapNotNull null
-                        }
-                        if (filter.endTime > 0 && created > filter.endTime) {
-                            return@mapNotNull null
-                        }
-
+                    remoteFiles.filter { file ->
+                        if (file.isFolder) return@filter false
+                        val matchesQuery = filter.query.isBlank() || file.name.contains(filter.query, ignoreCase = true)
+                        val matchesMime = filter.mimeType.isBlank() || file.mimeType.contains(filter.mimeType, ignoreCase = true)
+                        val matchesMinSize = filter.minSize <= 0L || file.sizeBytes >= filter.minSize
+                        val matchesMaxSize = filter.maxSize <= 0L || file.sizeBytes <= filter.maxSize
+                        val matchesStart = filter.startTime <= 0L || file.createdAt >= filter.startTime
+                        val matchesEnd = filter.endTime <= 0L || file.createdAt <= filter.endTime
+                        matchesQuery && matchesMime && matchesMinSize && matchesMaxSize && matchesStart && matchesEnd
+                    }.map { cloudFile ->
                         FederatedSearchResult(
                             fileId = cloudFile.id,
                             name = cloudFile.name,
-                            mimeType = mimeType,
-                            sizeBytes = size,
-                            providerId = providerType.name,
+                            mimeType = cloudFile.mimeType,
+                            sizeBytes = cloudFile.sizeBytes,
+                            providerId = provider.providerId,
                             providerType = providerType,
                             downloadUrl = cloudFile.downloadUrl,
-                            createdAt = created,
+                            createdAt = cloudFile.createdAt,
                             aiCategory = null,
                             source = FederatedSearchResult.SearchSource.REMOTE_PROVIDER
                         )
