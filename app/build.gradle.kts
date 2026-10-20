@@ -291,6 +291,33 @@ tasks.matching { it.name == "assembleDebug" }.configureEach {
     finalizedBy("copyDebugApk")
 }
 
+tasks.register("copyReleaseApk") {
+    doLast {
+        val buildDir = layout.buildDirectory.get().asFile
+        val releaseApkDir = file("$buildDir/outputs/apk/release")
+        val mdriveApk = file("$releaseApkDir/mdrive.apk")
+        val fallbackApk = file("$releaseApkDir/app-release-unsigned.apk")
+        val fallbackApk2 = file("$releaseApkDir/app-release.apk")
+        val sourceApk = when {
+            mdriveApk.exists() -> mdriveApk
+            fallbackApk.exists() -> fallbackApk
+            fallbackApk2.exists() -> fallbackApk2
+            else -> null
+        }
+        val targetDir = file("${projectDir}/build/outputs/apk/release")
+        sourceApk?.let { apk ->
+            targetDir.mkdirs()
+            apk.copyTo(file("$targetDir/mdrive.apk"), overwrite = true)
+            apk.copyTo(file("$targetDir/app-release.apk"), overwrite = true)
+            apk.copyTo(file("$targetDir/app-release-unsigned.apk"), overwrite = true)
+        }
+    }
+}
+
+tasks.matching { it.name == "assembleRelease" }.configureEach {
+    finalizedBy("copyReleaseApk")
+}
+
 tasks.register("generateVersionJson") {
     doLast {
         val assetsFile = file("src/main/assets/version.json")
