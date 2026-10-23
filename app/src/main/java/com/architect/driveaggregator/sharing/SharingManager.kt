@@ -104,11 +104,7 @@ class SharingManager(
 
             val token = tokenProvider(providerId)
             val expiresAt = if (options.expirationDurationMs != 0L) {
-                if (options.expirationDurationMs < 0) {
-                    System.currentTimeMillis() + options.expirationDurationMs
-                } else {
-                    System.currentTimeMillis() + options.expirationDurationMs
-                }
+                System.currentTimeMillis() + options.expirationDurationMs
             } else {
                 0L
             }
@@ -181,6 +177,15 @@ class SharingManager(
             Result.success(link)
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    /**
+     * Retrieves all active, unrevoked, unexpired sharing links across all files.
+     */
+    suspend fun getAllActiveLinks(): List<SharingLinkEntity> = withContext(Dispatchers.IO) {
+        sharingLinkDao.getAllLinks().filter { 
+            !it.isRevoked && (it.expiresAt == 0L || it.expiresAt > System.currentTimeMillis()) 
         }
     }
 

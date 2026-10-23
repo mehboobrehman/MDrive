@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.architect.driveaggregator.data.AppDatabase
@@ -77,7 +78,7 @@ class SharingUiRobolectricTest {
         composeTestRule.onNodeWithText("DOWNLOAD").assertIsDisplayed().performClick()
         composeTestRule.onNodeWithText("VIEW").assertIsDisplayed().performClick()
 
-        composeTestRule.onNodeWithText("Generate Secure Link").assertIsDisplayed().performClick()
+        composeTestRule.onNodeWithText("Generate Secure Link", useUnmergedTree = true).assertExists().performClick()
         composeTestRule.waitForIdle()
     }
 

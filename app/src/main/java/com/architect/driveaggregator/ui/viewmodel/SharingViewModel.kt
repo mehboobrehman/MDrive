@@ -148,7 +148,11 @@ class SharingViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true) }
             try {
                 val fileId = _uiState.value.selectedFileId
-                val links = if (fileId != null) sharingManager.getActiveLinks(fileId) else emptyList()
+                val links = if (fileId != null) {
+                    sharingManager.getActiveLinks(fileId)
+                } else {
+                    sharingManager.getAllActiveLinks()
+                }
                 _uiState.update { it.copy(isLoading = false, activeLinks = links) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }

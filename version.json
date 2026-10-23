@@ -3,6 +3,9 @@
   "minor": 0,
   "patch": 9,
   "versionName": "1.0.9",
-  "versionCode": 10009,
-  "version": "1.0.9"
+  "versionCode": 10010,
+  "version": "1.0.10",
+  "commitHash": "619198b",
+  "fullVersion": "v1.0.10+build.619198b",
+  "buildTimestamp": "2026-10-23T05:49:24Z"
 }
