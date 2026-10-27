@@ -27,7 +27,7 @@ import com.architect.driveaggregator.ui.model.TransferProgressItem
 import com.architect.driveaggregator.ui.model.TransferStatus
 import com.architect.driveaggregator.ui.model.TransferType
 import com.architect.driveaggregator.ui.model.ExplorerItem
-import com.architect.driveaggregator.ui.model.CloudProviderType
+import com.architect.driveaggregator.contracts.CloudProviderType
 import com.architect.driveaggregator.provider.CloudFile
 
 @OptIn(ExperimentalMaterial3Api::class)

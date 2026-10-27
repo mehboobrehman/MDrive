@@ -1,0 +1,20 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.architect.driveaggregator.app-mergeReleaseResources-64:/values-watch-v21/values-watch-v21.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\mehboob.rehman\\.gradle\\caches\\transforms-4\\0115ef9035b7c107aec0db293bd51b99\\transformed\\appcompat-1.6.1\\res\\values-watch-v21\\values-watch-v21.xml",
+                    "from": {
+                        "startLines": "2,6,10",
+                        "startColumns": "4,4,4",
+                        "startOffsets": "55,271,499",
+                        "endLines": "5,9,13",
+                        "endColumns": "12,12,12",
+                        "endOffsets": "266,494,724"
+                    }
+                }
+            ]
+        }
+    ]
+}

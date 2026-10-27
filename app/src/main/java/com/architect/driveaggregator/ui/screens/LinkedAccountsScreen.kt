@@ -25,7 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.architect.driveaggregator.ui.model.AccountStatus
-import com.architect.driveaggregator.ui.model.CloudProviderType
+import com.architect.driveaggregator.contracts.CloudProviderType
 import com.architect.driveaggregator.ui.model.DriveAccountInfo
 import com.architect.driveaggregator.ui.model.PooledStorageOverview
 import com.architect.driveaggregator.ui.viewmodel.LinkedAccountsUiState

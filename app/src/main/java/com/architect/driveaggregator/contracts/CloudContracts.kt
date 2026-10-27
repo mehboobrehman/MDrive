@@ -3,13 +3,18 @@ package com.architect.driveaggregator.contracts
 /**
  * Enumeration of supported cloud storage providers in MDrive.
  */
-enum class CloudProviderType {
-    GOOGLE_DRIVE,
-    ONEDRIVE,
-    DROPBOX,
-    MEGA,
-    BOX,
-    TERABOX
+enum class CloudProviderType(
+    val providerId: String,
+    val displayName: String,
+    val iconResName: String,
+    val defaultQuotaBytes: Long
+) {
+    GOOGLE_DRIVE("google_drive", "Google Drive", "ic_google_drive", 15L * 1024 * 1024 * 1024),
+    ONEDRIVE("onedrive", "Microsoft OneDrive", "ic_onedrive", 5L * 1024 * 1024 * 1024),
+    DROPBOX("dropbox", "Dropbox", "ic_dropbox", 2L * 1024 * 1024 * 1024),
+    MEGA("mega", "MEGA", "ic_mega", 20L * 1024 * 1024 * 1024),
+    BOX("box", "Box", "ic_box", 10L * 1024 * 1024 * 1024),
+    TERABOX("terabox", "TeraBox", "ic_terabox", 1024L * 1024 * 1024 * 1024) // 1 TB
 }
 
 /**

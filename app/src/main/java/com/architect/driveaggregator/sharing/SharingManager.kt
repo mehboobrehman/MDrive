@@ -1,13 +1,6 @@
 package com.architect.driveaggregator.sharing
 
 import android.content.Context
-import androidx.room.Entity
-import androidx.room.PrimaryKey
-import androidx.room.Dao
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
-import androidx.room.Query
-import androidx.room.Update
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -15,49 +8,6 @@ import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.UUID
-
-/**
- * Entity representing a secure sharing link for a file or folder across cloud providers.
- */
-@Entity(tableName = "sharing_links")
-data class SharingLinkEntity(
-    @PrimaryKey
-    val linkId: String,
-    val virtualFileId: String,
-    val providerId: String,
-    val providerFileId: String,
-    val shareUrl: String,
-    val permission: String, // "VIEW", "EDIT", "DOWNLOAD"
-    val isPublic: Boolean,
-    val expiresAt: Long, // 0 if never expires
-    val createdAt: Long = System.currentTimeMillis(),
-    val isRevoked: Boolean = false,
-    val accessCount: Int = 0
-)
-
-/**
- * Data Access Object for managing sharing links in Room database.
- */
-@Dao
-interface SharingLinkDao {
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertLink(link: SharingLinkEntity)
-
-    @Query("SELECT * FROM sharing_links WHERE linkId = :linkId")
-    suspend fun getLink(linkId: String): SharingLinkEntity?
-
-    @Query("SELECT * FROM sharing_links WHERE virtualFileId = :virtualFileId AND isRevoked = 0")
-    suspend fun getActiveLinksForFile(virtualFileId: String): List<SharingLinkEntity>
-
-    @Query("SELECT * FROM sharing_links")
-    suspend fun getAllLinks(): List<SharingLinkEntity>
-
-    @Update
-    suspend fun updateLink(link: SharingLinkEntity)
-
-    @Query("UPDATE sharing_links SET isRevoked = 1 WHERE linkId = :linkId")
-    suspend fun revokeLink(linkId: String)
-}
 
 /**
  * Configuration options for generating a secure sharing link.

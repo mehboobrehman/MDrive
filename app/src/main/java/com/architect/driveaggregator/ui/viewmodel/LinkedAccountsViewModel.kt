@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.architect.driveaggregator.auth.GoogleOAuthManager
 import com.architect.driveaggregator.security.SecureTokenVault
 import com.architect.driveaggregator.ui.model.AccountStatus
-import com.architect.driveaggregator.ui.model.CloudProviderType
+import com.architect.driveaggregator.contracts.CloudProviderType
 import com.architect.driveaggregator.ui.model.DriveAccountInfo
 import com.architect.driveaggregator.ui.model.PooledStorageOverview
 import com.architect.driveaggregator.telemetry.AgentLogger

@@ -6,6 +6,8 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.architect.driveaggregator.sharing.SharingLinkEntity
+import com.architect.driveaggregator.sharing.SharingLinkDao
 
 /**
  * AppDatabase acts as the Room Database singleton for MDrive (v4 schema),
@@ -18,7 +20,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         FileShardEntity::class,
         PrimaryAccountSessionEntity::class,
         SmartRecommendationEntity::class,
-        com.architect.driveaggregator.sharing.SharingLinkEntity::class
+        SharingLinkEntity::class
     ],
     version = 5,
     exportSchema = false
@@ -29,7 +31,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun primaryAccountSessionDao(): PrimaryAccountSessionDao
     abstract fun smartRecommendationDao(): SmartRecommendationDao
     abstract fun virtualFileDao(): VirtualFileDao
-    abstract fun sharingLinkDao(): com.architect.driveaggregator.sharing.SharingLinkDao
+    abstract fun sharingLinkDao(): SharingLinkDao
 
     companion object {
         @Volatile

@@ -13,6 +13,7 @@ plugins {
     id("com.google.dagger.hilt.android")
 }
 
+
 val localProperties = Properties().apply {
     val localPropertiesFile = rootProject.file("local.properties")
     if (localPropertiesFile.exists()) {
@@ -111,8 +112,6 @@ val buildTimestamp = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'").apply {
 val environment = System.getenv("ENVIRONMENT")
     ?: localProperties.getProperty("ENVIRONMENT")
     ?: "development"
-
-layout.buildDirectory.set(file("${System.getProperty("java.io.tmpdir")}/mdrive_app_build"))
 
 android {
     namespace = "com.architect.driveaggregator"

@@ -1,0 +1,20 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.architect.driveaggregator.app-mergeReleaseResources-64:/values-hdpi-v4/values-hdpi-v4.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\mehboob.rehman\\.gradle\\caches\\transforms-4\\0115ef9035b7c107aec0db293bd51b99\\transformed\\appcompat-1.6.1\\res\\values-hdpi-v4\\values-hdpi-v4.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endLines": "6",
+                        "endColumns": "13",
+                        "endOffsets": "327"
+                    }
+                }
+            ]
+        }
+    ]
+}

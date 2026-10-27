@@ -1,0 +1,46 @@
+[
+    {
+        "merged": "com.architect.driveaggregator.app-debug-70:/xml_network_security_config.xml.flat",
+        "source": "com.architect.driveaggregator.app-main-72:/xml/network_security_config.xml"
+    },
+    {
+        "merged": "com.architect.driveaggregator.app-debug-70:/mipmap-hdpi_ic_launcher.png.flat",
+        "source": "com.architect.driveaggregator.app-main-72:/mipmap-hdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.architect.driveaggregator.app-debug-70:/mipmap-xxhdpi_ic_launcher_round.png.flat",
+        "source": "com.architect.driveaggregator.app-main-72:/mipmap-xxhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.architect.driveaggregator.app-debug-70:/mipmap-xhdpi_ic_launcher_round.png.flat",
+        "source": "com.architect.driveaggregator.app-main-72:/mipmap-xhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.architect.driveaggregator.app-debug-70:/mipmap-hdpi_ic_launcher_round.png.flat",
+        "source": "com.architect.driveaggregator.app-main-72:/mipmap-hdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.architect.driveaggregator.app-debug-70:/mipmap-xxhdpi_ic_launcher.png.flat",
+        "source": "com.architect.driveaggregator.app-main-72:/mipmap-xxhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.architect.driveaggregator.app-debug-70:/mipmap-mdpi_ic_launcher.png.flat",
+        "source": "com.architect.driveaggregator.app-main-72:/mipmap-mdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.architect.driveaggregator.app-debug-70:/mipmap-mdpi_ic_launcher_round.png.flat",
+        "source": "com.architect.driveaggregator.app-main-72:/mipmap-mdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.architect.driveaggregator.app-debug-70:/mipmap-xxxhdpi_ic_launcher.png.flat",
+        "source": "com.architect.driveaggregator.app-main-72:/mipmap-xxxhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.architect.driveaggregator.app-debug-70:/mipmap-xhdpi_ic_launcher.png.flat",
+        "source": "com.architect.driveaggregator.app-main-72:/mipmap-xhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.architect.driveaggregator.app-debug-70:/mipmap-xxxhdpi_ic_launcher_round.png.flat",
+        "source": "com.architect.driveaggregator.app-main-72:/mipmap-xxxhdpi/ic_launcher_round.png"
+    }
+]
