@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.15] - 2026-10-27
+- Bump version to 1.0.15 (versionCode 10015).
+- Industrial release build with robust Google Drive multi-account storage aggregation and enhanced OAuth PKCE flow.
+
 ## [1.0.7] - 2026-10-16
 - Bump version to 1.0.7 (versionCode 10007).
 - Release v1.0.7 with enhanced storage aggregation and OAuth stability improvements.
