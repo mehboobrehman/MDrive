@@ -26,8 +26,9 @@ import androidx.compose.ui.unit.sp
 import com.architect.driveaggregator.ui.model.TransferProgressItem
 import com.architect.driveaggregator.ui.model.TransferStatus
 import com.architect.driveaggregator.ui.model.TransferType
-import com.architect.driveaggregator.ui.model.VirtualFileItem
-import com.architect.driveaggregator.ui.viewmodel.FileExplorerViewModel
+import com.architect.driveaggregator.ui.model.ExplorerItem
+import com.architect.driveaggregator.ui.model.CloudProviderType
+import com.architect.driveaggregator.provider.CloudFile
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,19 +51,38 @@ fun FileExplorerScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("MDrive File Explorer", fontWeight = FontWeight.Bold) },
+                title = { 
+                    Column {
+                        Text("MDrive File Explorer", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        if (uiState.currentFolderId != "root") {
+                            Text(
+                                text = if (uiState.currentProviderType != null) "Cloud: ${uiState.currentProviderType}" else "Virtual Root",
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                    }
+                },
                 navigationIcon = {
-                    IconButton(onClick = {
-                        AgentLogger.logEvent("INFO", "ACTION", "BUTTON_CLICK", "Clicked back arrow on File Explorer")
-                        onNavigateBack()
-                    }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    if (uiState.folderHistory.isNotEmpty()) {
+                        IconButton(onClick = {
+                            AgentLogger.logEvent("INFO", "ACTION", "BUTTON_CLICK", "Clicked back arrow on File Explorer")
+                            viewModel.navigateBack()
+                        }) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Navigate Up")
+                        }
+                    } else {
+                        IconButton(onClick = {
+                            AgentLogger.logEvent("INFO", "ACTION", "BUTTON_CLICK", "Clicked drawer/back on File Explorer")
+                            onNavigateBack()
+                        }) {
+                            Icon(Icons.Default.Menu, contentDescription = "Menu")
+                        }
                     }
                 },
                 actions = {
                     IconButton(onClick = {
                         AgentLogger.logEvent("INFO", "ACTION", "BUTTON_CLICK", "Clicked refresh button on File Explorer")
-                        viewModel.loadVirtualFiles()
+                        viewModel.loadExplorerItems()
                     }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                     }
@@ -135,7 +155,7 @@ fun FileExplorerScreen(
                         AgentLogger.logEvent("INFO", "ACTION", "BUTTON_CLICK", "Selected All Files tab")
                         viewModel.setSelectedFilterTab(0)
                     },
-                    text = { Text("All Files (${uiState.files.size})") }
+                    text = { Text("All Items (${uiState.explorerItems.size})") }
                 )
                 Tab(
                     selected = uiState.selectedFilterTab == 1,
@@ -151,7 +171,7 @@ fun FileExplorerScreen(
                         AgentLogger.logEvent("INFO", "ACTION", "BUTTON_CLICK", "Selected Completed tab")
                         viewModel.setSelectedFilterTab(2)
                     },
-                    text = { Text("Completed (${uiState.files.count { it.sagaState == "COMPLETED" }})") }
+                    text = { Text("Completed (${uiState.explorerItems.count { it is ExplorerItem.VirtualFile && it.virtualFile.sagaState == "COMPLETED" }})") }
                 )
             }
 
@@ -162,11 +182,24 @@ fun FileExplorerScreen(
                 0 -> {
                     // All Files List with active Progress Tracker overlay header if transfers active
                     FileListContent(
-                        files = uiState.files.filter { it.fileName.contains(uiState.searchQuery, ignoreCase = true) },
+                        explorerItems = uiState.explorerItems.filter { 
+                            when (it) {
+                                is ExplorerItem.VirtualFile -> it.virtualFile.fileName.contains(uiState.searchQuery, ignoreCase = true)
+                                is ExplorerItem.CloudFile -> it.cloudFile.name.contains(uiState.searchQuery, ignoreCase = true)
+                            }
+                        },
                         transfers = uiState.transfers,
                         isLoading = uiState.isLoading,
-                        onDownload = { viewModel.initiateDownload(it) },
-                        onDelete = { viewModel.deleteVirtualFile(it.virtualFileId) },
+                        onVirtualDownload = { viewModel.initiateDownload(it) },
+                        onVirtualDelete = { viewModel.deleteVirtualFile(it.virtualFileId) },
+                        onCloudClick = { cloudFile, providerType ->
+                            if (cloudFile.isFolder) {
+                                viewModel.navigateToFolder(cloudFile.id, providerType)
+                            } else {
+                                // Handle cloud file click (e.g. download or preview)
+                                AgentLogger.logEvent("INFO", "UI", "CLOUD_FILE_CLICK", "Clicked cloud file ${cloudFile.name}")
+                            }
+                        },
                         onPauseTransfer = { viewModel.pauseTransfer(it) },
                         onResumeTransfer = { viewModel.resumeTransfer(it) },
                         onCancelTransfer = { viewModel.cancelTransfer(it) }
@@ -184,11 +217,15 @@ fun FileExplorerScreen(
                 2 -> {
                     // Completed files
                     FileListContent(
-                        files = uiState.files.filter { it.sagaState == "COMPLETED" && it.fileName.contains(uiState.searchQuery, ignoreCase = true) },
+                        explorerItems = uiState.explorerItems.filter { 
+                            it is ExplorerItem.VirtualFile && it.virtualFile.sagaState == "COMPLETED" && 
+                            it.virtualFile.fileName.contains(uiState.searchQuery, ignoreCase = true) 
+                        },
                         transfers = emptyList(),
                         isLoading = uiState.isLoading,
-                        onDownload = { viewModel.initiateDownload(it) },
-                        onDelete = { viewModel.deleteVirtualFile(it.virtualFileId) },
+                        onVirtualDownload = { viewModel.initiateDownload(it) },
+                        onVirtualDelete = { viewModel.deleteVirtualFile(it.virtualFileId) },
+                        onCloudClick = { _, _ -> },
                         onPauseTransfer = {},
                         onResumeTransfer = {},
                         onCancelTransfer = {}
@@ -203,11 +240,12 @@ fun FileExplorerScreen(
 
 @Composable
 fun FileListContent(
-    files: List<VirtualFileItem>,
+    explorerItems: List<ExplorerItem>,
     transfers: List<TransferProgressItem>,
     isLoading: Boolean,
-    onDownload: (VirtualFileItem) -> Unit,
-    onDelete: (VirtualFileItem) -> Unit,
+    onVirtualDownload: (VirtualFileItem) -> Unit,
+    onVirtualDelete: (VirtualFileItem) -> Unit,
+    onCloudClick: (CloudFile, CloudProviderType) -> Unit,
     onPauseTransfer: (String) -> Unit,
     onResumeTransfer: (String) -> Unit,
     onCancelTransfer: (String) -> Unit
@@ -242,7 +280,7 @@ fun FileListContent(
             item {
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                 Text(
-                    text = "Virtual Files Library",
+                    text = "File Explorer",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
@@ -261,7 +299,7 @@ fun FileListContent(
                     CircularProgressIndicator()
                 }
             }
-        } else if (files.isEmpty()) {
+        } else if (explorerItems.isEmpty()) {
             item {
                 Box(
                     modifier = Modifier
@@ -278,7 +316,7 @@ fun FileListContent(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "No virtual files found",
+                            text = "No items found",
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.outline
                         )
@@ -286,17 +324,89 @@ fun FileListContent(
                 }
             }
         } else {
-            items(files, key = { it.virtualFileId }) { fileItem ->
-                VirtualFileCard(
-                    fileItem = fileItem,
-                    onDownload = { onDownload(fileItem) },
-                    onDelete = { onDelete(fileItem) }
-                )
+            items(explorerItems, key = { 
+                when (it) {
+                    is ExplorerItem.VirtualFile -> "virtual_" + it.virtualFile.virtualFileId
+                    is ExplorerItem.CloudFile -> "cloud_" + it.cloudFile.id
+                }
+            }) { item ->
+                when (item) {
+                    is ExplorerItem.VirtualFile -> {
+                        VirtualFileCard(
+                            fileItem = item.virtualFile,
+                            onDownload = { onVirtualDownload(item.virtualFile) },
+                            onDelete = { onVirtualDelete(item.virtualFile) }
+                        )
+                    }
+                    is ExplorerItem.CloudFile -> {
+                        CloudFileCard(
+                            cloudFile = item.cloudFile,
+                            providerType = item.providerType,
+                            onClick = { onCloudClick(item.cloudFile, item.providerType) }
+                        )
+                    }
+                }
             }
         }
 
         item {
             Spacer(modifier = Modifier.height(80.dp)) // Padding for FAB
+        }
+    }
+}
+
+@Composable
+fun CloudFileCard(
+    cloudFile: CloudFile,
+    providerType: CloudProviderType,
+    onClick: (CloudFile, CloudProviderType) -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick(cloudFile, providerType) },
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.tertiaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = if (cloudFile.isFolder) Icons.Default.Folder else Icons.Default.Description,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onTertiaryContainer
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = cloudFile.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = if (cloudFile.isFolder) "Folder" else "${FileUtils.formatFileSize(cloudFile.size)} • ${providerType.name}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline
+                )
+            }
+            if (!cloudFile.isFolder) {
+                IconButton(onClick = { /* TODO: Implement cloud file download/options */ }) {
+                    Icon(Icons.Default.MoreVert, contentDescription = "Options")
+                }
+            }
         }
     }
 }

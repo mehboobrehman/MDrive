@@ -64,13 +64,17 @@ class DefaultOAuthNetworkClient @Inject constructor(
             val expiresInSeconds = json.optLong("expires_in", 3600L)
             val idToken = json.optString("id_token").takeIf { it.isNotBlank() }
 
-            val accountId = extractAccountId(idToken, accessToken)
+            val userInfo = extractUserInfo(idToken, accessToken)
+            // Prefer email as accountId if valid, otherwise fallback to sub or generated ID
+            val accountId = userInfo.email ?: userInfo.sub ?: "account_${System.currentTimeMillis()}"
 
             NetworkTokenResponse(
                 accountId = accountId,
                 accessToken = accessToken,
                 refreshToken = refreshToken,
-                expiresInSeconds = expiresInSeconds
+                expiresInSeconds = expiresInSeconds,
+                email = userInfo.email,
+                displayName = userInfo.name
             )
         }
     }
@@ -126,42 +130,48 @@ class DefaultOAuthNetworkClient @Inject constructor(
         }
     }
 
-    private fun extractAccountId(idToken: String?, accessToken: String): String {
+    private data class UserInfo(val sub: String? = null, val email: String? = null, val name: String? = null)
+
+    private fun extractUserInfo(idToken: String?, accessToken: String): UserInfo {
+        var sub: String? = null
+        var email: String? = null
+        var name: String? = null
+
         if (!idToken.isNullOrBlank()) {
             val json = decodeJwtPayload(idToken)
             if (json != null) {
-                val sub = json.optString("sub", "").takeIf { it.isNotBlank() }
-                val email = json.optString("email", "").takeIf { it.isNotBlank() }
-                if (sub != null) return sub
-                if (email != null) return email
+                sub = json.optString("sub", "").takeIf { it.isNotBlank() }
+                email = json.optString("email", "").takeIf { it.isNotBlank() }
+                name = json.optString("name", "").takeIf { it.isNotBlank() }
             }
         }
 
-        // Fallback to userinfo endpoint
-        try {
-            val request = Request.Builder()
-                .url(USERINFO_ENDPOINT)
-                .header("Authorization", "Bearer $accessToken")
-                .get()
-                .build()
+        // If data is missing, attempt to fetch from userinfo endpoint
+        if (sub == null || email == null || name == null) {
+            try {
+                val request = Request.Builder()
+                    .url(USERINFO_ENDPOINT)
+                    .header("Authorization", "Bearer $accessToken")
+                    .get()
+                    .build()
 
-            okHttpClient.newCall(request).execute().use { response ->
-                if (response.isSuccessful) {
-                    val body = response.body?.string()
-                    if (!body.isNullOrBlank()) {
-                        val json = JSONObject(body)
-                        val sub = json.optString("sub", "").takeIf { it.isNotBlank() }
-                        val email = json.optString("email", "").takeIf { it.isNotBlank() }
-                        if (sub != null) return sub
-                        if (email != null) return email
+                okHttpClient.newCall(request).execute().use { response ->
+                    if (response.isSuccessful) {
+                        val body = response.body?.string()
+                        if (!body.isNullOrBlank()) {
+                            val json = JSONObject(body)
+                            if (sub == null) sub = json.optString("sub", "").takeIf { it.isNotBlank() }
+                            if (email == null) email = json.optString("email", "").takeIf { it.isNotBlank() }
+                            if (name == null) name = json.optString("name", "").takeIf { it.isNotBlank() }
+                        }
                     }
                 }
+            } catch (e: Exception) {
+                // ignore network errors for profile info; we already have tokens
             }
-        } catch (e: Exception) {
-            // ignore
         }
 
-        return "account_${System.currentTimeMillis()}"
+        return UserInfo(sub, email, name)
     }
 
     private fun decodeJwtPayload(idToken: String): JSONObject? {

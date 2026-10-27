@@ -10,6 +10,7 @@ import com.architect.driveaggregator.ui.model.CloudProviderType
 import com.architect.driveaggregator.ui.model.DriveAccountInfo
 import com.architect.driveaggregator.ui.model.PooledStorageOverview
 import com.architect.driveaggregator.telemetry.AgentLogger
+import com.architect.driveaggregator.provider.GoogleDriveStorageProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -46,48 +47,91 @@ class LinkedAccountsViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             try {
                 val accountIds = vault.getAllAccountIds()
-
                 val accountsList = accountIds.map { id ->
-                    val isGoogle = !id.startsWith("onedrive_") && !id.startsWith("dropbox_") && !id.startsWith("mega_") && !id.startsWith("box_") && !id.startsWith("terabox_")
-                    val providerType = when {
-                        id.startsWith("onedrive_") -> CloudProviderType.ONEDRIVE
-                        id.startsWith("dropbox_") -> CloudProviderType.DROPBOX
-                        id.startsWith("mega_") -> CloudProviderType.MEGA
-                        id.startsWith("box_") -> CloudProviderType.BOX
-                        id.startsWith("terabox_") -> CloudProviderType.TERABOX
-                        else -> CloudProviderType.GOOGLE_DRIVE
+                    val providerType = determineProviderType(id)
+                    
+                    // Prefer cached values from vault
+                    val cachedEmail = vault.getAccountEmail(id) 
+                        ?: if (providerType == CloudProviderType.GOOGLE_DRIVE) "$id@gmail.com" else "$id@${providerType.providerId}.cloud"
+                    
+                    val rawCachedName = vault.getAccountDisplayName(id)
+                    val displayName = if (rawCachedName != null) {
+                        "${providerType.displayName} ($rawCachedName)"
+                    } else {
+                        "${providerType.displayName} ($id)"
                     }
 
-                    val defaultCapacity = providerType.defaultQuotaBytes
                     DriveAccountInfo(
                         accountId = id,
-                        email = if (isGoogle) "$id@gmail.com" else "$id@${providerType.providerId}.cloud",
-                        displayName = "${providerType.displayName} ($id)",
-                        totalBytes = defaultCapacity,
-                        usedBytes = defaultCapacity / 4,  // 25% used simulation
-                        freeBytes = defaultCapacity - (defaultCapacity / 4),
-                        status = AccountStatus.ACTIVE,
+                        email = cachedEmail,
+                        displayName = displayName,
+                        totalBytes = providerType.defaultQuotaBytes,
+                        usedBytes = 0L,
+                        freeBytes = providerType.defaultQuotaBytes,
+                        status = AccountStatus.SYNCING,
                         providerType = providerType
                     )
+                }.toMutableList()
+
+                // Initial UI update with cached/default info
+                refreshPooledOverview(accountsList)
+
+                // Asynchronously fetch live quota for each account
+                accountIds.forEachIndexed { index, id ->
+                    launch {
+                        val providerType = determineProviderType(id)
+                        if (providerType == CloudProviderType.GOOGLE_DRIVE && oauthManager != null) {
+                            try {
+                                val accessToken = oauthManager.getValidAccessToken(id)
+                                if (accessToken != null) {
+                                    val provider = GoogleDriveStorageProvider(
+                                        providerId = id,
+                                        accessTokenProvider = { accessToken }
+                                    )
+                                    val details = provider.getQuotaAndUser()
+                                    
+                                    // Cache live profile info
+                                    details.email?.let { vault.storeAccountEmail(id, it) }
+                                    details.displayName?.let { vault.storeAccountDisplayName(id, it) }
+
+                                    val freshDisplayName = if (details.displayName != null) {
+                                        "${providerType.displayName} (${details.displayName})"
+                                    } else {
+                                        accountsList[index].displayName
+                                    }
+
+                                    val updated = accountsList[index].copy(
+                                        email = details.email ?: accountsList[index].email,
+                                        displayName = freshDisplayName,
+                                        totalBytes = details.totalBytes,
+                                        usedBytes = details.usedBytes,
+                                        freeBytes = details.freeBytes,
+                                        status = AccountStatus.ACTIVE
+                                    )
+                                    accountsList[index] = updated
+                                    refreshPooledOverview(accountsList)
+                                } else {
+                                    accountsList[index] = accountsList[index].copy(status = AccountStatus.EXPIRED_TOKEN)
+                                    refreshPooledOverview(accountsList)
+                                }
+                            } catch (e: Exception) {
+                                accountsList[index] = accountsList[index].copy(status = AccountStatus.ERROR)
+                                refreshPooledOverview(accountsList)
+                            }
+                        } else {
+                            // Non-Google accounts remain simulated for now but set as Active
+                            val defaultCapacity = providerType.defaultQuotaBytes
+                            accountsList[index] = accountsList[index].copy(
+                                status = AccountStatus.ACTIVE,
+                                usedBytes = defaultCapacity / 4, // simulation for non-google
+                                freeBytes = defaultCapacity - (defaultCapacity / 4)
+                            )
+                            refreshPooledOverview(accountsList)
+                        }
+                    }
                 }
 
-                val totalCapacity = accountsList.sumOf { it.totalBytes }
-                val totalUsed = accountsList.sumOf { it.usedBytes }
-                val totalFree = accountsList.sumOf { it.freeBytes }
-
-                val overview = PooledStorageOverview(
-                    totalCapacityBytes = totalCapacity,
-                    totalUsedBytes = totalUsed,
-                    totalFreeBytes = totalFree,
-                    accounts = accountsList
-                )
-
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        pooledStorage = overview
-                    )
-                }
+                _uiState.update { it.copy(isLoading = false) }
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
@@ -97,6 +141,32 @@ class LinkedAccountsViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    private fun determineProviderType(accountId: String): CloudProviderType {
+        return when {
+            accountId.startsWith("onedrive_") -> CloudProviderType.ONEDRIVE
+            accountId.startsWith("dropbox_") -> CloudProviderType.DROPBOX
+            accountId.startsWith("mega_") -> CloudProviderType.MEGA
+            accountId.startsWith("box_") -> CloudProviderType.BOX
+            accountId.startsWith("terabox_") -> CloudProviderType.TERABOX
+            else -> CloudProviderType.GOOGLE_DRIVE
+        }
+    }
+
+    private fun refreshPooledOverview(accounts: List<DriveAccountInfo>) {
+        val totalCapacity = accounts.sumOf { it.totalBytes }
+        val totalUsed = accounts.sumOf { it.usedBytes }
+        val totalFree = accounts.sumOf { it.freeBytes }
+
+        val overview = PooledStorageOverview(
+            totalCapacityBytes = totalCapacity,
+            totalUsedBytes = totalUsed,
+            totalFreeBytes = totalFree,
+            accounts = accounts.toList()
+        )
+
+        _uiState.update { it.copy(pooledStorage = overview) }
     }
 
     fun triggerLinkNewAccount(providerType: CloudProviderType = CloudProviderType.GOOGLE_DRIVE) {

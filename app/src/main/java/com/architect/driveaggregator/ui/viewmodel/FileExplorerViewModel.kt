@@ -29,8 +29,19 @@ import kotlinx.coroutines.withContext
 import java.util.UUID
 import javax.inject.Inject
 
+import com.architect.driveaggregator.provider.StorageProvider
+import com.architect.driveaggregator.security.SecureTokenVault
+import com.architect.driveaggregator.provider.CloudFile
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+
 data class FileExplorerUiState(
-    val files: List<VirtualFileItem> = emptyList(),
+    val explorerItems: List<ExplorerItem> = emptyList(),
+    val currentFolderId: String = "root",
+    val currentProviderType: CloudProviderType? = null,
+    val folderHistory: List<Pair<String, CloudProviderType?>> = emptyList(),
+    val files: List<VirtualFileItem> = emptyList(), // Keep for backward compatibility if needed temporarily, but task says change it.
     val transfers: List<TransferProgressItem> = emptyList(),
     val searchQuery: String = "",
     val isLoading: Boolean = false,
@@ -43,7 +54,9 @@ class FileExplorerViewModel @Inject constructor(
     application: Application,
     private val database: AppDatabase,
     private val virtualDriveEngine: VirtualDriveEngine,
-    private val syncOrchestrator: com.architect.driveaggregator.sync.SyncOrchestrator
+    private val syncOrchestrator: com.architect.driveaggregator.sync.SyncOrchestrator,
+    private val storageProviders: Map<CloudProviderType, @JvmSuppressWildcards StorageProvider>,
+    private val tokenVault: SecureTokenVault
 ) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow(FileExplorerUiState())
@@ -53,49 +66,118 @@ class FileExplorerViewModel @Inject constructor(
     private var loadFilesJob: Job? = null
 
     init {
-        loadVirtualFiles()
+        loadExplorerItems()
     }
 
-    fun loadVirtualFiles() {
+    fun loadExplorerItems() {
         loadFilesJob?.cancel()
         loadFilesJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                database.sagaTransactionDao().observeAllVirtualFilesWithStats().collect { results ->
-                    try {
-                        val items = results.map { result ->
+                val currentFolderId = _uiState.value.currentFolderId
+                val currentProviderType = _uiState.value.currentProviderType
+
+                if (currentProviderType != null) {
+                    // Browsing specific cloud provider folder
+                    val provider = storageProviders[currentProviderType]
+                    if (provider != null) {
+                        val cloudFiles = provider.listFiles(currentFolderId)
+                        val explorerItems = cloudFiles.map { 
+                            ExplorerItem.CloudFile(it, currentProviderType) 
+                        }
+                        
+                        // For now, assume VirtualFileItems are global and only shown at root,
+                        // or if we had folder support for them, filter here.
+                        // Since we don't have folder support for virtual files yet, we only show cloud files.
+                        
+                        _uiState.update { it.copy(explorerItems = explorerItems, isLoading = false) }
+                    } else {
+                        _uiState.update { it.copy(isLoading = false, snackbarMessage = "Provider not found") }
+                    }
+                } else {
+                    // Root view: Show all virtual files + top-level cloud accounts/files
+                    database.sagaTransactionDao().observeAllVirtualFilesWithStats().collectLatest { results ->
+                        val virtualItems = results.map { result ->
                             val entity = result.virtualFile
-                            VirtualFileItem(
-                                virtualFileId = entity.virtualFileId,
-                                fileName = entity.fileName,
-                                fileSize = entity.fileSize,
-                                mimeType = entity.mimeType,
-                                sagaState = entity.sagaState,
-                                uploadedShardsCount = result.completedShardsCount,
-                                totalShardsCount = result.totalShardsCount.coerceAtLeast(1),
-                                createdAt = entity.createdAt
+                            ExplorerItem.VirtualFile(
+                                VirtualFileItem(
+                                    virtualFileId = entity.virtualFileId,
+                                    fileName = entity.fileName,
+                                    fileSize = entity.fileSize,
+                                    mimeType = entity.mimeType,
+                                    sagaState = entity.sagaState,
+                                    uploadedShardsCount = result.completedShardsCount,
+                                    totalShardsCount = result.totalShardsCount.coerceAtLeast(1),
+                                    createdAt = entity.createdAt
+                                )
                             )
                         }
-                        AgentLogger.logEvent(
-                            level = "INFO",
-                            category = "UI",
-                            event = "FILES_LOADED",
-                            message = "Loaded ${items.size} virtual files",
-                            payload = mapOf("fileCount" to items.size)
-                        )
-                        _uiState.update { it.copy(files = items, isLoading = false) }
-                    } catch (e: Exception) {
-                        if (e is CancellationException) throw e
-                        logFilesLoadError(e)
-                        _uiState.update { it.copy(isLoading = false, snackbarMessage = "Failed to load files: ${e.localizedMessage}") }
+
+                        // Fetch root items from all active providers
+                        val cloudItems = mutableListOf<ExplorerItem.CloudFile>()
+                        val activeAccounts = tokenVault.getAllAccounts()
+                        
+                        activeAccounts.forEach { account ->
+                            try {
+                                val provider = storageProviders[account.providerType]
+                                if (provider != null) {
+                                    val roots = provider.listFiles("root")
+                                    cloudItems.addAll(roots.map { ExplorerItem.CloudFile(it, account.providerType) })
+                                }
+                            } catch (e: Exception) {
+                                AgentLogger.logEvent(
+                                    level = "WARN",
+                                    category = "UI",
+                                    event = "CLOUD_LOAD_ERROR",
+                                    message = "Failed to load root for ${account.providerType}: ${e.message}"
+                                )
+                            }
+                        }
+
+                        val combinedItems = (virtualItems + cloudItems).sortedByDescending { 
+                            when (it) {
+                                is ExplorerItem.VirtualFile -> it.virtualFile.createdAt
+                                is ExplorerItem.CloudFile -> it.cloudFile.modifiedTime ?: 0L
+                            }
+                        }
+
+                        _uiState.update { it.copy(explorerItems = combinedItems, isLoading = false) }
                     }
                 }
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
                 logFilesLoadError(e)
-                _uiState.update { it.copy(isLoading = false, snackbarMessage = "Failed to load files: ${e.localizedMessage}") }
+                _uiState.update { it.copy(isLoading = false, snackbarMessage = "Failed to load items: ${e.localizedMessage}") }
             }
         }
+    }
+
+    fun navigateToFolder(folderId: String, providerType: CloudProviderType?) {
+        _uiState.update { state ->
+            val newHistory = state.folderHistory + (state.currentFolderId to state.currentProviderType)
+            state.copy(
+                currentFolderId = folderId,
+                currentProviderType = providerType,
+                folderHistory = newHistory
+            )
+        }
+        loadExplorerItems()
+    }
+
+    fun navigateBack(): Boolean {
+        val history = _uiState.value.folderHistory
+        if (history.isEmpty()) return false
+
+        val last = history.last()
+        _uiState.update { state ->
+            state.copy(
+                currentFolderId = last.first,
+                currentProviderType = last.second,
+                folderHistory = history.dropLast(1)
+            )
+        }
+        loadExplorerItems()
+        return true
     }
 
     private fun logFilesLoadError(e: Exception) {
@@ -386,7 +468,9 @@ class FileExplorerViewModel @Inject constructor(
                 database.sagaTransactionDao().deleteVirtualFile(virtualFileId)
                 _uiState.update { state ->
                     state.copy(
-                        files = state.files.filter { it.virtualFileId != virtualFileId },
+                        explorerItems = state.explorerItems.filter { 
+                            it !is ExplorerItem.VirtualFile || it.virtualFile.virtualFileId != virtualFileId 
+                        },
                         snackbarMessage = "Virtual file deleted"
                     )
                 }

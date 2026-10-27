@@ -1,5 +1,12 @@
 package com.architect.driveaggregator.ui.model
 
+import com.architect.driveaggregator.provider.CloudFile
+
+sealed interface ExplorerItem {
+    data class VirtualFile(val virtualFile: VirtualFileItem) : ExplorerItem
+    data class CloudFile(val cloudFile: com.architect.driveaggregator.provider.CloudFile, val providerType: CloudProviderType) : ExplorerItem
+}
+
 data class VirtualFileItem(
     val virtualFileId: String,
     val fileName: String,

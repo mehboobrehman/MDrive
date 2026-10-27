@@ -437,7 +437,7 @@ fun AccountItemCard(
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Text(
-                                text = account.providerType.displayName,
+                                text = account.displayName,
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Bold
                             )

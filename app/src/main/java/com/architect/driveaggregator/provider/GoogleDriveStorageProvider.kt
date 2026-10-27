@@ -7,6 +7,17 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 /**
+ * Extended quota and user info for Google Drive.
+ */
+data class GoogleAccountDetails(
+    val totalBytes: Long,
+    val usedBytes: Long,
+    val freeBytes: Long,
+    val email: String?,
+    val displayName: String?
+)
+
+/**
  * GoogleDriveStorageProvider integrates Google Drive REST API v3.
  * Endpoints:
  * - Quota: GET https://www.googleapis.com/drive/v3/about?fields=storageQuota
@@ -22,9 +33,13 @@ class GoogleDriveStorageProvider(
     private val uploadBaseUrl: String = "https://www.googleapis.com/upload/drive/v3"
 ) : StorageProvider {
 
-    override suspend fun getQuota(): StorageQuota = executeWithRetry {
+    override suspend fun getQuota(): StorageQuota = getQuotaAndUser().let {
+        StorageQuota(it.totalBytes, it.usedBytes, it.freeBytes)
+    }
+
+    suspend fun getQuotaAndUser(): GoogleAccountDetails = executeWithRetry {
         val token = accessTokenProvider()
-        val url = URL("$apiBaseUrl/about?fields=storageQuota")
+        val url = URL("$apiBaseUrl/about?fields=storageQuota,user")
         val connection = (url.openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
             setRequestProperty("Authorization", "Bearer $token")
@@ -44,15 +59,23 @@ class GoogleDriveStorageProvider(
         }
 
         val responseText = connection.inputStream.bufferedReader().use { it.readText() }
-        val json = JSONObject(responseText).getJSONObject("storageQuota")
-        val total = json.optLong("limit", 0L)
-        val used = json.optLong("usage", 0L)
+        val json = JSONObject(responseText)
+        
+        val quotaJson = json.getJSONObject("storageQuota")
+        val total = quotaJson.optLong("limit", 0L)
+        val used = quotaJson.optLong("usage", 0L)
         val free = (total - used).coerceAtLeast(0L)
 
-        StorageQuota(
+        val userJson = json.optJSONObject("user")
+        val email = userJson?.optString("emailAddress")
+        val displayName = userJson?.optString("displayName")
+
+        GoogleAccountDetails(
             totalBytes = total,
             usedBytes = used,
-            freeBytes = free
+            freeBytes = free,
+            email = email,
+            displayName = displayName
         )
     }
 

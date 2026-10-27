@@ -95,6 +95,31 @@ class SecureTokenVaultTest {
     }
 
     @Test
+    fun storeAndGetAccountEmailAndDisplayName_storesAndRetrievesSuccessfully() {
+        val accountId = "google_123"
+        val email = "user@gmail.com"
+        val displayName = "User Name"
+
+        vault.storeAccountEmail(accountId, email)
+        vault.storeAccountDisplayName(accountId, displayName)
+
+        assertEquals(email, vault.getAccountEmail(accountId))
+        assertEquals(displayName, vault.getAccountDisplayName(accountId))
+    }
+
+    @Test
+    fun removeAccount_deletesProfileInfo() {
+        val accountId = "acc_remove"
+        vault.storeAccountEmail(accountId, "email")
+        vault.storeAccountDisplayName(accountId, "name")
+
+        vault.removeAccount(accountId)
+
+        assertNull(vault.getAccountEmail(accountId))
+        assertNull(vault.getAccountDisplayName(accountId))
+    }
+
+    @Test
     fun clearAll_removesAllAccountsAndTokens() {
         vault.storeRefreshToken("acc_1", "rt_1")
         vault.storeAccessToken("acc_2", "at_2", 1000L)

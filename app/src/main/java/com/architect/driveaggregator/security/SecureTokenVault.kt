@@ -109,6 +109,58 @@ class SecureTokenVault @JvmOverloads constructor(
     }
 
     /**
+     * Stores the email address for the specified account ID.
+     */
+    fun storeAccountEmail(accountId: String, email: String) {
+        try {
+            prefs.edit()
+                .putString(getAccountEmailKey(accountId), email)
+                .apply()
+            addAccountId(accountId)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to store email for account: $accountId", e)
+        }
+    }
+
+    /**
+     * Retrieves the stored email for the specified account ID.
+     */
+    fun getAccountEmail(accountId: String): String? {
+        return try {
+            prefs.getString(getAccountEmailKey(accountId), null)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to retrieve email for account: $accountId", e)
+            null
+        }
+    }
+
+    /**
+     * Stores the display name for the specified account ID.
+     */
+    fun storeAccountDisplayName(accountId: String, displayName: String) {
+        try {
+            prefs.edit()
+                .putString(getAccountDisplayNameKey(accountId), displayName)
+                .apply()
+            addAccountId(accountId)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to store display name for account: $accountId", e)
+        }
+    }
+
+    /**
+     * Retrieves the stored display name for the specified account ID.
+     */
+    fun getAccountDisplayName(accountId: String): String? {
+        return try {
+            prefs.getString(getAccountDisplayNameKey(accountId), null)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to retrieve display name for account: $accountId", e)
+            null
+        }
+    }
+
+    /**
      * Returns the set of all account IDs stored in the vault.
      */
     fun getAllAccountIds(): Set<String> {
@@ -130,6 +182,8 @@ class SecureTokenVault @JvmOverloads constructor(
                 .remove(getRefreshTokenKey(accountId))
                 .remove(getAccessTokenKey(accountId))
                 .remove(getAccessTokenExpiryKey(accountId))
+                .remove(getAccountEmailKey(accountId))
+                .remove(getAccountDisplayNameKey(accountId))
                 .apply()
 
             val accountIds = prefs.getStringSet(KEY_ACCOUNT_IDS, emptySet()) ?: emptySet()
@@ -196,11 +250,15 @@ class SecureTokenVault @JvmOverloads constructor(
         private const val PREFIX_ACCESS_TOKEN = "access_token_"
         private const val PREFIX_ACCESS_TOKEN_EXPIRY = "access_token_expiry_"
         private const val PREFIX_PKCE_VERIFIER = "pkce_verifier_"
+        private const val PREFIX_ACCOUNT_EMAIL = "account_email_"
+        private const val PREFIX_ACCOUNT_DISPLAY_NAME = "account_display_name_"
 
         fun getRefreshTokenKey(accountId: String) = "$PREFIX_REFRESH_TOKEN$accountId"
         fun getAccessTokenKey(accountId: String) = "$PREFIX_ACCESS_TOKEN$accountId"
         fun getAccessTokenExpiryKey(accountId: String) = "$PREFIX_ACCESS_TOKEN_EXPIRY$accountId"
         fun getPkceVerifierKey(state: String) = "$PREFIX_PKCE_VERIFIER$state"
+        fun getAccountEmailKey(accountId: String) = "$PREFIX_ACCOUNT_EMAIL$accountId"
+        fun getAccountDisplayNameKey(accountId: String) = "$PREFIX_ACCOUNT_DISPLAY_NAME$accountId"
 
         /**
          * Creates an EncryptedSharedPreferences instance backed by Android Keystore MasterKey.

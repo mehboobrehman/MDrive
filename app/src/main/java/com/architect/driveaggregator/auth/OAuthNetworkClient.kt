@@ -7,7 +7,9 @@ data class NetworkTokenResponse(
     val accountId: String,
     val accessToken: String,
     val refreshToken: String?,
-    val expiresInSeconds: Long
+    val expiresInSeconds: Long,
+    val email: String? = null,
+    val displayName: String? = null
 )
 
 /**

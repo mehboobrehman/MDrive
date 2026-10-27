@@ -88,10 +88,17 @@ class GoogleOAuthManagerTest {
         val refreshToken = "refresh_token"
         val expiresIn = 3600L
 
-        whenever(mockVault.getAndRemovePkceVerifier(state)).thenReturn(verifier)
-        whenever(mockNetworkClient.exchangeCodeForTokens(eq(code), eq(verifier))).thenReturn(
-            NetworkTokenResponse(accountId, accessToken, refreshToken, expiresIn)
+        val response = NetworkTokenResponse(
+            accountId = accountId,
+            accessToken = accessToken,
+            refreshToken = refreshToken,
+            expiresInSeconds = expiresIn,
+            email = "user@gmail.com",
+            displayName = "User Name"
         )
+
+        whenever(mockVault.getAndRemovePkceVerifier(state)).thenReturn(verifier)
+        whenever(mockNetworkClient.exchangeCodeForTokens(eq(code), eq(verifier))).thenReturn(response)
 
         val result = oauthManager.handleAuthorizationCode(code, state)
 
@@ -99,6 +106,8 @@ class GoogleOAuthManagerTest {
         assertEquals(accountId, result.getOrNull())
         verify(mockVault).storeAccessToken(eq(accountId), eq(accessToken), any())
         verify(mockVault).storeRefreshToken(eq(accountId), eq(refreshToken))
+        verify(mockVault).storeAccountEmail(eq(accountId), eq("user@gmail.com"))
+        verify(mockVault).storeAccountDisplayName(eq(accountId), eq("User Name"))
     }
 
     @Test

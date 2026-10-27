@@ -113,6 +113,12 @@ class GoogleOAuthManager(
             response.refreshToken?.let {
                 tokenVault.storeRefreshToken(response.accountId, it)
             }
+            response.email?.let {
+                tokenVault.storeAccountEmail(response.accountId, it)
+            }
+            response.displayName?.let {
+                tokenVault.storeAccountDisplayName(response.accountId, it)
+            }
 
             AgentLogger.logEvent(
                 "INFO", "OAUTH", "OAUTH_TOKEN_EXCHANGE_SUCCESS",
