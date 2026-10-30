@@ -9,6 +9,7 @@ import com.architect.driveaggregator.data.SmartRecommendationDao
 import com.architect.driveaggregator.data.VirtualFileDao
 import com.architect.driveaggregator.sharing.SharingLinkDao
 import com.architect.driveaggregator.sharing.SharingManager
+import com.architect.driveaggregator.data.dao.LogDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -52,6 +53,12 @@ object DatabaseModule {
     @Singleton
     fun provideSharingLinkDao(database: AppDatabase): SharingLinkDao {
         return database.sharingLinkDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideLogDao(database: AppDatabase): LogDao {
+        return database.logDao()
     }
 
     @Provides
