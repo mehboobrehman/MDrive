@@ -8,11 +8,13 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.architect.driveaggregator.sharing.SharingLinkEntity
 import com.architect.driveaggregator.sharing.SharingLinkDao
+import com.architect.driveaggregator.data.entities.LogEntity
+import com.architect.driveaggregator.data.dao.LogDao
 
 /**
- * AppDatabase acts as the Room Database singleton for MDrive (v4 schema),
- * housing VirtualFileEntity, FileShardEntity, PrimaryAccountSessionEntity, and SmartRecommendationEntity
- * with WAL mode enabled and seamless v3 to v4 migration.
+ * AppDatabase acts as the Room Database singleton for MDrive (v6 schema),
+ * housing VirtualFileEntity, FileShardEntity, PrimaryAccountSessionEntity, SmartRecommendationEntity
+ * and LogEntity with WAL mode enabled and seamless migration.
  */
 @Database(
     entities = [
@@ -20,9 +22,10 @@ import com.architect.driveaggregator.sharing.SharingLinkDao
         FileShardEntity::class,
         PrimaryAccountSessionEntity::class,
         SmartRecommendationEntity::class,
-        SharingLinkEntity::class
+        SharingLinkEntity::class,
+        LogEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -32,12 +35,33 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun smartRecommendationDao(): SmartRecommendationDao
     abstract fun virtualFileDao(): VirtualFileDao
     abstract fun sharingLinkDao(): SharingLinkDao
+    abstract fun logDao(): LogDao
 
     companion object {
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
         private const val DATABASE_NAME = "mdrive_saga_ledger.db"
+
+        /**
+         * Migration from version 5 to version 6:
+         * Adds `logs` table for offline diagnostics.
+         */
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `logs` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `timestamp` INTEGER NOT NULL,
+                        `level` TEXT NOT NULL,
+                        `tag` TEXT NOT NULL,
+                        `message` TEXT NOT NULL,
+                        `metadata` TEXT NOT NULL,
+                        `isSynced` INTEGER NOT NULL DEFAULT 0
+                    )
+                """)
+            }
+        }
 
         /**
          * Migration from version 4 to version 5:
@@ -170,7 +194,7 @@ abstract class AppDatabase : RoomDatabase() {
                 AppDatabase::class.java,
                 DATABASE_NAME
             )
-                .addMigrations(MIGRATION_3_4, MIGRATION_1_4, MIGRATION_4_5)
+                .addMigrations(MIGRATION_3_4, MIGRATION_1_4, MIGRATION_4_5, MIGRATION_5_6)
                 .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
                 .build()
         }

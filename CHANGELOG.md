@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.19] - 2026-10-30
+- Bump version to 1.0.19 (versionCode 10019).
+- Update repository version across all configuration files and assets.
+
 ## [1.0.16] - 2026-10-27
 - Bump version to 1.0.16 (versionCode 10016).
 - Enhanced stability and multi-account Google Drive storage aggregation.
