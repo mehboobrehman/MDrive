@@ -5,6 +5,9 @@ import android.net.wifi.WifiManager
 import android.os.Build
 import android.util.Log
 import com.architect.driveaggregator.BuildConfig
+import com.architect.driveaggregator.data.AppDatabase
+import com.architect.driveaggregator.data.dao.LogDao
+import com.architect.driveaggregator.data.entities.LogEntity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -70,6 +73,9 @@ object AgentLogger {
 
     @Volatile
     private var appContext: Context? = null
+
+    @Volatile
+    private var logDao: LogDao? = null
 
     // Thread-safe FIFO queue to buffer log entries before dynamic endpoint discovery finishes
     private val logQueue = ConcurrentLinkedQueue<LogPayload>()
@@ -196,6 +202,7 @@ object AgentLogger {
         cachedServerUrl = "http://$ip:$port"
         val targetContext = context?.applicationContext ?: appContext
         targetContext?.let { ctx ->
+            appContext = ctx
             try {
                 val prefs = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 prefs.edit().putString(PREF_KEY_SERVER_IP, ip).apply()
@@ -205,6 +212,7 @@ object AgentLogger {
         // but do not flush/POST to the network
         if (isTestEnvironment()) return
         flushBuffer()
+        syncBufferedLogs()
         logEvent("INFO", "STARTUP", "DISCOVER_SUCCESS", "Telemetry server set to http://$ip:$port")
     }
 
@@ -237,12 +245,18 @@ object AgentLogger {
     fun resetForTesting() {
         cachedServerUrl = null
         appContext = null
+        logDao = null
         logQueue.clear()
         scope.coroutineContext.cancelChildren()
     }
 
     fun initDynamicConfig(context: Context) {
         appContext = context.applicationContext
+        // Obtain LogDao from AppDatabase singleton if possible
+        try {
+            logDao = AppDatabase.getInstance(context).logDao()
+        } catch (_: Exception) {}
+
         if (!BuildConfig.DEBUG) return
 
         // In test environment keep appContext (needed by tests) but skip all network activity
@@ -254,6 +268,7 @@ object AgentLogger {
             if (!savedIp.isNullOrBlank()) {
                 cachedServerUrl = "http://$savedIp:$DEFAULT_PORT"
                 flushBuffer()
+                syncBufferedLogs()
             }
 
             val resolvedIp = discoverServerIp(context)
@@ -267,6 +282,7 @@ object AgentLogger {
             }
 
             flushBuffer()
+            syncBufferedLogs()
 
             // Startup stats logging under STARTUP:APP_INIT
             logStartupStats(context)
@@ -508,8 +524,8 @@ object AgentLogger {
         }
     }
 
-    private fun sendHttpLog(baseUrl: String, entry: LogPayload) {
-        try {
+    private fun sendHttpLog(baseUrl: String, entry: LogPayload): Boolean {
+        return try {
             val json = JSONObject().apply {
                 put("timestamp", entry.timestamp)
                 put("level", entry.level)
@@ -530,11 +546,80 @@ object AgentLogger {
                 .post(body)
                 .build()
 
-            httpClient.newCall(request).execute().use { _ ->
-                // Response processed
+            httpClient.newCall(request).execute().use { response ->
+                response.isSuccessful
             }
         } catch (_: Exception) {
-            // Fail silently with zero impact on app performance
+            false
+        }
+    }
+
+    /**
+     * Synchronizes pending logs stored locally in Room database when connectivity is available.
+     * Reads unsynced logs (`isSynced = 0`), pushes them to the telemetry server, and marks them synced.
+     */
+    fun syncBufferedLogs() {
+        val baseUrl = cachedServerUrl ?: return
+        if (isTestEnvironment()) return
+
+        scope.launch {
+            val dao = getOrResolveDao() ?: return@launch
+            try {
+                val unsynced = dao.getUnsyncedLogs()
+                if (unsynced.isEmpty()) return@launch
+
+                val successfullySyncedIds = mutableListOf<Long>()
+                for (logEntity in unsynced) {
+                    // Reconstruct payload map from metadata JSON if present
+                    val payloadMap = try {
+                        if (logEntity.metadata.isNotBlank() && logEntity.metadata != "{}") {
+                            val jsonObj = JSONObject(logEntity.metadata)
+                            jsonObj.keys().asSequence().associateWith { jsonObj.get(it) }
+                        } else {
+                            null
+                        }
+                    } catch (_: Exception) {
+                        null
+                    }
+
+                    val payload = LogPayload(
+                        level = logEntity.level,
+                        category = logEntity.tag.substringBefore(':'),
+                        event = if (logEntity.tag.contains(':')) logEntity.tag.substringAfter(':') else "EVENT",
+                        message = logEntity.message,
+                        payload = payloadMap,
+                        stack = null,
+                        timestamp = Instant.ofEpochMilli(logEntity.timestamp).toString()
+                    )
+
+                    val success = sendHttpLog(baseUrl, payload)
+                    if (success) {
+                        successfullySyncedIds.add(logEntity.id)
+                    } else {
+                        // Stop trying if server is currently unreachable
+                        break
+                    }
+                }
+
+                if (successfullySyncedIds.isNotEmpty()) {
+                    dao.markAsSynced(successfullySyncedIds)
+                    // Cleanup old successfully synced logs older than 7 days
+                    val sevenDaysAgo = System.currentTimeMillis() - (7L * 24 * 60 * 60 * 1000)
+                    dao.deleteSyncedLogs(sevenDaysAgo)
+                }
+            } catch (_: Exception) {}
+        }
+    }
+
+    private fun getOrResolveDao(): LogDao? {
+        if (logDao != null) return logDao
+        val ctx = appContext ?: return null
+        return try {
+            val dao = AppDatabase.getInstance(ctx).logDao()
+            logDao = dao
+            dao
+        } catch (_: Exception) {
+            null
         }
     }
 
@@ -564,8 +649,38 @@ object AgentLogger {
             else -> Log.i(TAG, logMsg)
         }
 
-        // In test environment, only mirror to Logcat — do not queue or POST to network
+        // In test environment, only mirror to Logcat — do not queue or POST to network / Room DB
         if (isTestEnvironment()) return
+
+        val timestampMillis = System.currentTimeMillis()
+        val metadataJson = if (redactedPayload != null && redactedPayload.isNotEmpty()) {
+            try {
+                JSONObject(redactedPayload).toString()
+            } catch (_: Exception) {
+                "{}"
+            }
+        } else {
+            "{}"
+        }
+
+        val tagStr = "$category:$event"
+
+        // 1. Persist locally in Room database via LogDao
+        scope.launch {
+            try {
+                val dao = getOrResolveDao()
+                dao?.insert(
+                    LogEntity(
+                        timestamp = timestampMillis,
+                        level = level,
+                        tag = tagStr,
+                        message = redactedMessage,
+                        metadata = metadataJson,
+                        isSynced = false
+                    )
+                )
+            } catch (_: Exception) {}
+        }
 
         val entry = LogPayload(
             level = level,
@@ -574,7 +689,7 @@ object AgentLogger {
             message = redactedMessage,
             payload = redactedPayload,
             stack = stack,
-            timestamp = Instant.now().toString()
+            timestamp = Instant.ofEpochMilli(timestampMillis).toString()
         )
 
         val currentUrl = cachedServerUrl
@@ -587,7 +702,10 @@ object AgentLogger {
                     val queued = logQueue.poll() ?: break
                     sendHttpLog(currentUrl, queued)
                 }
-                sendHttpLog(currentUrl, entry)
+                val success = sendHttpLog(currentUrl, entry)
+                if (success) {
+                    // Mark recently inserted entry as synced if needed, or rely on batch syncBufferedLogs()
+                }
             }
         }
     }

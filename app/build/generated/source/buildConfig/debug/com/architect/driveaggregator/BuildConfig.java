@@ -12,7 +12,7 @@ public final class BuildConfig {
   // Field from default config.
   public static final String APP_VERSION = "1.0.19";
   // Field from default config.
-  public static final String BUILD_TIMESTAMP = "2026-10-30T09:32:30Z";
+  public static final String BUILD_TIMESTAMP = "2026-10-30T09:40:09Z";
   // Field from default config.
   public static final long CHUNK_SIZE_BYTES = 8388608L;
   // Field from default config.
@@ -20,9 +20,9 @@ public final class BuildConfig {
   // Field from build type: debug
   public static final String ENVIRONMENT = "development";
   // Field from default config.
-  public static final String FULL_VERSION_STRING = "v1.0.19+build.bc892ff";
+  public static final String FULL_VERSION_STRING = "v1.0.19+build.f52ac8e";
   // Field from default config.
-  public static final String GIT_COMMIT_HASH = "bc892ff";
+  public static final String GIT_COMMIT_HASH = "f52ac8e";
   // Field from default config.
   public static final String GOOGLE_CLIENT_ID = "1012190863574-c4sr89dhefjl5a1h8gfq9blpgeteiv1m.apps.googleusercontent.com";
   // Field from default config.
