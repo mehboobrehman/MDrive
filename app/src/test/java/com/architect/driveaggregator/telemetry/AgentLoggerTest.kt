@@ -75,4 +75,10 @@ class AgentLoggerTest {
         assertEquals("10.0.0.5", AgentLogger.getServerIp(mockContext))
         assertTrue(AgentLogger.isConfigured())
     }
+
+    @Test
+    fun featureFlagsAndForce401DefaultToFalse() {
+        assertEquals(false, AgentLogger.force401)
+        assertTrue(AgentLogger.featureFlags.isEmpty())
+    }
 }

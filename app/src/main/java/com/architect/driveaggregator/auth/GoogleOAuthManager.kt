@@ -158,6 +158,11 @@ class GoogleOAuthManager(
                 "Refreshing access token",
                 mapOf("flow" to "refresh_token")
             )
+            
+            if (AgentLogger.force401) {
+                throw java.io.IOException("Forced 401 Unauthorized for token refresh testing")
+            }
+
             val response = networkClient.refreshAccessToken(refreshToken)
             val newExpiryTimeMs = System.currentTimeMillis() + (response.expiresInSeconds * 1000L)
             

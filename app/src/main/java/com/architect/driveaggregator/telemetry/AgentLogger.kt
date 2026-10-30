@@ -23,6 +23,8 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
+import okhttp3.MediaType.Companion.toMediaType
+import kotlinx.coroutines.delay
 import java.io.PrintWriter
 import java.io.StringWriter
 import java.net.Inet4Address
@@ -76,6 +78,14 @@ object AgentLogger {
 
     @Volatile
     private var logDao: LogDao? = null
+
+    @Volatile
+    var force401: Boolean = false
+        private set
+
+    @Volatile
+    var featureFlags: Map<String, Boolean> = emptyMap()
+        private set
 
     // Thread-safe FIFO queue to buffer log entries before dynamic endpoint discovery finishes
     private val logQueue = ConcurrentLinkedQueue<LogPayload>()
@@ -289,6 +299,9 @@ object AgentLogger {
 
             // Periodic metrics monitoring under DIAGNOSTIC:SYS_METRICS (every 5s)
             startSystemMetricsMonitoring()
+
+            // Initialize dynamic config polling
+            startConfigPolling()
         }
     }
 
@@ -330,33 +343,47 @@ object AgentLogger {
         }
     }
 
-    private fun startSystemMetricsMonitoring() {
+    private suspend fun fetchRemoteConfig() {
+        val baseUrl = cachedServerUrl ?: return
+        try {
+            val request = Request.Builder()
+                .url("$baseUrl/api/config")
+                .get()
+                .build()
+            
+            httpClient.newCall(request).execute().use { response ->
+                if (response.isSuccessful) {
+                    val body = response.body?.string()
+                    if (!body.isNullOrBlank()) {
+                        val json = JSONObject(body)
+                        
+                        // Parse feature flags
+                        val flags = mutableMapOf<String, Boolean>()
+                        val keys = json.keys()
+                        while (keys.hasNext()) {
+                            val key = keys.next()
+                            if (key == "force_401") {
+                                force401 = json.optBoolean("force_401", false)
+                            } else {
+                                flags[key] = json.optBoolean(key, false)
+                            }
+                        }
+                        featureFlags = flags
+                        
+                        logEvent("INFO", "CONFIG", "REMOTE_CONFIG_UPDATED", "Config updated: force_401=$force401, flags=$flags")
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            logEvent("ERROR", "CONFIG", "REMOTE_CONFIG_FAILED", "Failed to fetch remote config: ${e.message}")
+        }
+    }
+
+    private fun startConfigPolling() {
         scope.launch {
             while (true) {
-                kotlinx.coroutines.delay(5000)
-                try {
-                    val runtime = Runtime.getRuntime()
-                    val totalMem = runtime.totalMemory()
-                    val freeMem = runtime.freeMemory()
-                    val allocMem = totalMem - freeMem
-                    val maxMem = runtime.maxMemory()
-                    val threadCount = Thread.activeCount()
-
-                    logEvent(
-                        level = "DEBUG",
-                        category = "DIAGNOSTIC",
-                        event = "SYS_METRICS",
-                        message = "Periodic system metrics",
-                        payload = mapOf(
-                            "allocated_memory" to allocMem,
-                            "heap_size" to totalMem,
-                            "max_memory" to maxMem,
-                            "thread_count" to threadCount
-                        )
-                    )
-                } catch (e: Exception) {
-                    // Fail silently
-                }
+                fetchRemoteConfig()
+                delay(60_000) // Poll every minute
             }
         }
     }
