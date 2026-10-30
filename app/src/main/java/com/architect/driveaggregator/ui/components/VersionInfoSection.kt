@@ -12,14 +12,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.architect.driveaggregator.ui.viewmodel.AboutVersionViewModel
+import androidx.compose.ui.platform.LocalContext
+import android.content.Intent
+import com.architect.driveaggregator.ui.DebugActivity
+import androidx.compose.foundation.clickable
 
 @Composable
 fun VersionInfoSection(
     viewModel: AboutVersionViewModel,
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.appContext ?: LocalContext.current
+    var tapCount by remember { mutableStateOf(0) }
+    var lastTapTime by remember { mutableStateOf(0L) }
 
     Column(
         modifier = modifier
@@ -105,7 +110,21 @@ fun VersionInfoSection(
                         text = "MDrive ${uiState.runningVersion.fullVersion}",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.clickable {
+                            val now = System.currentTimeMillis()
+                            if (now - lastTapTime > 600) {
+                                tapCount = 1
+                            } else {
+                                tapCount++
+                            }
+                            lastTapTime = now
+                            if (tapCount >= 3) {
+                                tapCount = 0
+                                val intent = Intent(context, DebugActivity::class.java)
+                                context.startActivity(intent)
+                            }
+                        }
                     )
                 }
 

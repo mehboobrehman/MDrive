@@ -75,6 +75,7 @@
             android:label="Offline Caching"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
+        <!-- DebugActivity moved to debug source set -->
         <activity
             android:name=".ui.AiSmartDashboardActivity"
             android:label="AI Smart Organization"
