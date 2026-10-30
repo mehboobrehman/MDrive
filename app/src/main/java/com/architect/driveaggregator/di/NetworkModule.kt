@@ -1,5 +1,6 @@
 package com.architect.driveaggregator.di
 
+import com.architect.driveaggregator.telemetry.TelemetryInterceptor
 import com.architect.driveaggregator.auth.DefaultOAuthNetworkClient
 import com.architect.driveaggregator.auth.OAuthNetworkClient
 import dagger.Binds
@@ -38,6 +39,7 @@ abstract class NetworkModule {
                     } catch (_: Exception) {}
                     chain.proceed(requestBuilder.build())
                 }
+                .addInterceptor(TelemetryInterceptor())
                 .build()
         }
     }

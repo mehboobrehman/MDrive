@@ -1,6 +1,7 @@
 package com.architect.driveaggregator.auth
 
 import com.architect.driveaggregator.BuildConfig
+import com.architect.driveaggregator.telemetry.TelemetryInterceptor
 import com.architect.driveaggregator.security.SecureTokenVault
 import okhttp3.FormBody
 import okhttp3.OkHttpClient
@@ -23,6 +24,7 @@ class DefaultOAuthNetworkClient @Inject constructor(
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)
+        .addInterceptor(TelemetryInterceptor())
         .build()
 ) : OAuthNetworkClient {
 

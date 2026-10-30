@@ -1,5 +1,6 @@
 package com.architect.driveaggregator.upload
 
+import com.architect.driveaggregator.telemetry.TelemetryInterceptor
 import com.architect.driveaggregator.auth.GoogleOAuthManager
 import com.architect.driveaggregator.data.FileShardEntity
 import com.architect.driveaggregator.data.SagaTransactionDao
@@ -28,6 +29,7 @@ class GoogleResumableUploadManager(
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(60, TimeUnit.SECONDS)
         .writeTimeout(60, TimeUnit.SECONDS)
+        .addInterceptor(TelemetryInterceptor())
         .build()
 ) {
 
