@@ -2,6 +2,7 @@ package com.architect.driveaggregator.telemetry
 
 import okhttp3.Interceptor
 import okhttp3.Response
+import com.architect.driveaggregator.BuildConfig
 import okhttp3.ResponseBody.Companion.toResponseBody
 import okio.Buffer
 import java.nio.charset.Charset
@@ -53,7 +54,13 @@ class TelemetryInterceptor : Interceptor {
     }
 
     override fun intercept(chain: Interceptor.Chain): Response {
-        val request = chain.request()
+        val original = chain.request()
+        val requestBuilder = original.newBuilder()
+        try {
+            requestBuilder.header("X-App-Version", BuildConfig.SEMVER_VERSION)
+            requestBuilder.header("X-Build-Id", BuildConfig.GIT_COMMIT_HASH)
+        } catch (_: Exception) {}
+        val request = requestBuilder.build()
         val startTime = System.currentTimeMillis()
 
         val url = request.url.toString()
@@ -83,7 +90,7 @@ class TelemetryInterceptor : Interceptor {
             requestBodyStr = "[Unable to read request body]"
         }
 
-        val response: Response
+        var response: Response
         try {
             response = chain.proceed(request)
         } catch (e: Exception) {

@@ -1,5 +1,6 @@
 package com.architect.driveaggregator.ui.model
 
+import com.architect.driveaggregator.contracts.CloudProviderType
 import com.architect.driveaggregator.provider.CloudFile
 
 sealed interface ExplorerItem {

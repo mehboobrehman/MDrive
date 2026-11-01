@@ -24,6 +24,15 @@ class DefaultOAuthNetworkClient @Inject constructor(
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)
+        .addInterceptor { chain ->
+            val original = chain.request()
+            val requestBuilder = original.newBuilder()
+            try {
+                requestBuilder.header("X-App-Version", BuildConfig.SEMVER_VERSION)
+                requestBuilder.header("X-Build-Id", BuildConfig.GIT_COMMIT_HASH)
+            } catch (_: Exception) {}
+            chain.proceed(requestBuilder.build())
+        }
         .addInterceptor(TelemetryInterceptor())
         .build()
 ) : OAuthNetworkClient {

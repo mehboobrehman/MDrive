@@ -12,6 +12,7 @@ import com.architect.driveaggregator.ui.model.TransferProgressItem
 import com.architect.driveaggregator.ui.model.TransferStatus
 import com.architect.driveaggregator.ui.model.TransferType
 import com.architect.driveaggregator.ui.model.VirtualFileItem
+import com.architect.driveaggregator.ui.model.ExplorerItem
 import com.architect.driveaggregator.BuildConfig
 import dagger.hilt.android.lifecycle.HiltViewModel
 import androidx.work.WorkInfo
@@ -32,6 +33,7 @@ import javax.inject.Inject
 import com.architect.driveaggregator.provider.StorageProvider
 import com.architect.driveaggregator.security.SecureTokenVault
 import com.architect.driveaggregator.provider.CloudFile
+import com.architect.driveaggregator.contracts.CloudProviderType
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -115,21 +117,31 @@ class FileExplorerViewModel @Inject constructor(
 
                         // Fetch root items from all active providers
                         val cloudItems = mutableListOf<ExplorerItem.CloudFile>()
-                        val activeAccounts = tokenVault.getAllAccounts()
+                        val accountIds = tokenVault.getAllAccountIds()
+                        val activeProviders = accountIds.map { id ->
+                            when {
+                                id.startsWith("onedrive_") -> CloudProviderType.ONEDRIVE
+                                id.startsWith("dropbox_") -> CloudProviderType.DROPBOX
+                                id.startsWith("mega_") -> CloudProviderType.MEGA
+                                id.startsWith("box_") -> CloudProviderType.BOX
+                                id.startsWith("terabox_") -> CloudProviderType.TERABOX
+                                else -> CloudProviderType.GOOGLE_DRIVE
+                            }
+                        }.distinct()
                         
-                        activeAccounts.forEach { account ->
+                        for (providerType in activeProviders) {
                             try {
-                                val provider = storageProviders[account.providerType]
+                                val provider = storageProviders[providerType]
                                 if (provider != null) {
                                     val roots = provider.listFiles("root")
-                                    cloudItems.addAll(roots.map { ExplorerItem.CloudFile(it, account.providerType) })
+                                    cloudItems.addAll(roots.map { ExplorerItem.CloudFile(it, providerType) })
                                 }
                             } catch (e: Exception) {
                                 AgentLogger.logEvent(
                                     level = "WARN",
                                     category = "UI",
                                     event = "CLOUD_LOAD_ERROR",
-                                    message = "Failed to load root for ${account.providerType}: ${e.message}"
+                                    message = "Failed to load root for ${providerType}: ${e.message}"
                                 )
                             }
                         }
@@ -137,7 +149,7 @@ class FileExplorerViewModel @Inject constructor(
                         val combinedItems = (virtualItems + cloudItems).sortedByDescending { 
                             when (it) {
                                 is ExplorerItem.VirtualFile -> it.virtualFile.createdAt
-                                is ExplorerItem.CloudFile -> it.cloudFile.modifiedTime ?: 0L
+                                is ExplorerItem.CloudFile -> it.cloudFile.createdAt
                             }
                         }
 

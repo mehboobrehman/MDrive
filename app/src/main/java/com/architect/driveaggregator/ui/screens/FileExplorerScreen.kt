@@ -27,8 +27,10 @@ import com.architect.driveaggregator.ui.model.TransferProgressItem
 import com.architect.driveaggregator.ui.model.TransferStatus
 import com.architect.driveaggregator.ui.model.TransferType
 import com.architect.driveaggregator.ui.model.ExplorerItem
+import com.architect.driveaggregator.ui.model.VirtualFileItem
 import com.architect.driveaggregator.contracts.CloudProviderType
 import com.architect.driveaggregator.provider.CloudFile
+import com.architect.driveaggregator.ui.viewmodel.FileExplorerViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -359,12 +361,12 @@ fun FileListContent(
 fun CloudFileCard(
     cloudFile: CloudFile,
     providerType: CloudProviderType,
-    onClick: (CloudFile, CloudProviderType) -> Unit
+    onClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick(cloudFile, providerType) },
+            .clickable { onClick() },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
@@ -397,7 +399,7 @@ fun CloudFileCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = if (cloudFile.isFolder) "Folder" else "${FileUtils.formatFileSize(cloudFile.size)} • ${providerType.name}",
+                    text = if (cloudFile.isFolder) "Folder" else "${FileUtils.formatFileSize(cloudFile.sizeBytes)} • ${providerType.displayName}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline
                 )

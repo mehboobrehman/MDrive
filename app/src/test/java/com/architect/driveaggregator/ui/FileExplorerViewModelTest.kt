@@ -58,7 +58,9 @@ class FileExplorerViewModelTest {
             context.applicationContext as android.app.Application,
             database,
             virtualDriveEngine,
-            syncOrchestrator
+            syncOrchestrator,
+            emptyMap(),
+            tokenVault
         )
     }
 

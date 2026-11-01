@@ -7,6 +7,8 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.collectAsState
+import com.architect.driveaggregator.ui.viewmodel.AboutVersionViewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -22,7 +24,8 @@ fun VersionInfoSection(
     viewModel: AboutVersionViewModel,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.appContext ?: LocalContext.current
+    val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
     var tapCount by remember { mutableStateOf(0) }
     var lastTapTime by remember { mutableStateOf(0L) }
 

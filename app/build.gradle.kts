@@ -9,7 +9,7 @@ import java.util.Date
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
-    id("org.jetbrains.kotlin.kapt")
+    id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android")
 }
 
@@ -205,6 +205,11 @@ android {
     }
 }
 
+// kapt {
+//     correctErrorTypes = true
+// }
+
+
 dependencies {
     implementation("androidx.activity:activity-compose:1.8.2")
     implementation("androidx.appcompat:appcompat:1.6.1")
@@ -221,11 +226,11 @@ dependencies {
     // Room DB
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
-    kapt("androidx.room:room-compiler:2.6.1")
+    ksp("androidx.room:room-compiler:2.6.1")
 
     // Hilt Dependency Injection
     implementation("com.google.dagger:hilt-android:2.51.1")
-    kapt("com.google.dagger:hilt-compiler:2.51.1")
+    ksp("com.google.dagger:hilt-compiler:2.51.1")
 
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
@@ -259,7 +264,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
     implementation("androidx.work:work-runtime-ktx:2.9.0")
     implementation("androidx.hilt:hilt-work:1.2.0")
-    kapt("androidx.hilt:hilt-compiler:1.2.0")
+    ksp("androidx.hilt:hilt-compiler:1.2.0")
     implementation("com.jakewharton:disklrucache:2.0.2")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
@@ -273,16 +278,23 @@ tasks.register("copyDebugApk") {
         val debugApkDir = file("$buildDir/outputs/apk/debug")
         val mdriveApk = file("$debugApkDir/mdrive.apk")
         val fallbackApk = file("$debugApkDir/app-debug.apk")
+        
         val sourceApk = when {
             mdriveApk.exists() -> mdriveApk
             fallbackApk.exists() -> fallbackApk
             else -> null
         }
-        val targetDir = file("${projectDir}/build/outputs/apk/debug")
+        
         sourceApk?.let { apk ->
-            targetDir.mkdirs()
-            apk.copyTo(file("$targetDir/mdrive.apk"), overwrite = true)
-            apk.copyTo(file("$targetDir/app-debug.apk"), overwrite = true)
+            val targetMdrive = file("$debugApkDir/mdrive.apk")
+            val targetAppDebug = file("$debugApkDir/app-debug.apk")
+            
+            if (apk != targetMdrive && apk.exists()) {
+                apk.copyTo(targetMdrive, overwrite = true)
+            }
+            if (apk != targetAppDebug && apk.exists()) {
+                apk.copyTo(targetAppDebug, overwrite = true)
+            }
         }
     }
 }
@@ -298,18 +310,28 @@ tasks.register("copyReleaseApk") {
         val mdriveApk = file("$releaseApkDir/mdrive.apk")
         val fallbackApk = file("$releaseApkDir/app-release-unsigned.apk")
         val fallbackApk2 = file("$releaseApkDir/app-release.apk")
+        
         val sourceApk = when {
             mdriveApk.exists() -> mdriveApk
             fallbackApk.exists() -> fallbackApk
             fallbackApk2.exists() -> fallbackApk2
             else -> null
         }
-        val targetDir = file("${projectDir}/build/outputs/apk/release")
+        
         sourceApk?.let { apk ->
-            targetDir.mkdirs()
-            apk.copyTo(file("$targetDir/mdrive.apk"), overwrite = true)
-            apk.copyTo(file("$targetDir/app-release.apk"), overwrite = true)
-            apk.copyTo(file("$targetDir/app-release-unsigned.apk"), overwrite = true)
+            val targetMdrive = file("$releaseApkDir/mdrive.apk")
+            val targetAppRelease = file("$releaseApkDir/app-release.apk")
+            val targetAppReleaseUnsigned = file("$releaseApkDir/app-release-unsigned.apk")
+            
+            if (apk != targetMdrive && apk.exists()) {
+                apk.copyTo(targetMdrive, overwrite = true)
+            }
+            if (apk != targetAppRelease && apk.exists()) {
+                apk.copyTo(targetAppRelease, overwrite = true)
+            }
+            if (apk != targetAppReleaseUnsigned && apk.exists()) {
+                apk.copyTo(targetAppReleaseUnsigned, overwrite = true)
+            }
         }
     }
 }

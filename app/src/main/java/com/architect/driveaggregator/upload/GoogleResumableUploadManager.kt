@@ -2,6 +2,7 @@ package com.architect.driveaggregator.upload
 
 import com.architect.driveaggregator.telemetry.TelemetryInterceptor
 import com.architect.driveaggregator.auth.GoogleOAuthManager
+import com.architect.driveaggregator.BuildConfig
 import com.architect.driveaggregator.data.FileShardEntity
 import com.architect.driveaggregator.data.SagaTransactionDao
 import kotlinx.coroutines.delay
@@ -29,6 +30,15 @@ class GoogleResumableUploadManager(
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(60, TimeUnit.SECONDS)
         .writeTimeout(60, TimeUnit.SECONDS)
+        .addInterceptor { chain ->
+            val original = chain.request()
+            val requestBuilder = original.newBuilder()
+            try {
+                requestBuilder.header("X-App-Version", BuildConfig.SEMVER_VERSION)
+                requestBuilder.header("X-Build-Id", BuildConfig.GIT_COMMIT_HASH)
+            } catch (_: Exception) {}
+            chain.proceed(requestBuilder.build())
+        }
         .addInterceptor(TelemetryInterceptor())
         .build()
 ) {

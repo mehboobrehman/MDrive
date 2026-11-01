@@ -6,7 +6,9 @@ secrets.properties
 /secrets.properties
 /.idea/
 .DS_Store
-/build
+build/
+app/build/
+**/build/
 /captures
 .externalNativeBuild
 .cxx

@@ -23,7 +23,6 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
-import okhttp3.MediaType.Companion.toMediaType
 import kotlinx.coroutines.delay
 import java.io.PrintWriter
 import java.io.StringWriter
@@ -106,9 +105,18 @@ object AgentLogger {
         val fingerprint = Build.FINGERPRINT ?: ""
         val manufacturer = Build.MANUFACTURER ?: ""
         val model = Build.MODEL ?: ""
+        val device = Build.DEVICE ?: ""
         return fingerprint.contains("robolectric", ignoreCase = true) ||
             manufacturer.contains("robolectric", ignoreCase = true) ||
-            model.contains("robolectric", ignoreCase = true)
+            model.contains("robolectric", ignoreCase = true) ||
+            device.contains("robolectric", ignoreCase = true) ||
+            appContext == null ||
+            try {
+                Class.forName("org.robolectric.Robolectric")
+                true
+            } catch (_: Throwable) {
+                false
+            }
     }
 
     private data class LogPayload(
@@ -379,6 +387,10 @@ object AgentLogger {
         }
     }
 
+    private fun startSystemMetricsMonitoring() {
+        // TODO: Implement metrics monitoring
+    }
+
     private fun startConfigPolling() {
         scope.launch {
             while (true) {
@@ -559,11 +571,14 @@ object AgentLogger {
                 put("category", entry.category)
                 put("event", entry.event)
                 put("message", entry.message)
-                if (entry.payload != null) {
-                    put("payload", JSONObject(entry.payload))
-                } else {
-                    put("payload", JSONObject())
-                }
+                put("x_app_version", BuildConfig.SEMVER_VERSION)
+                put("x_build_id", BuildConfig.GIT_COMMIT_HASH)
+                put("app_version", BuildConfig.SEMVER_VERSION)
+                put("build_id", BuildConfig.GIT_COMMIT_HASH)
+                val basePayload = entry.payload?.toMutableMap() ?: mutableMapOf()
+                basePayload["x_app_version"] = BuildConfig.SEMVER_VERSION
+                basePayload["x_build_id"] = BuildConfig.GIT_COMMIT_HASH
+                put("payload", JSONObject(basePayload))
                 put("stack", entry.stack ?: JSONObject.NULL)
             }
 
