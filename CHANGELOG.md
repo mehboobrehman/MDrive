@@ -1,5 +1,8 @@
 # Changelog
 
+## [1.0.20] - 2026-11-03
+- Bump version to 1.0.20 (versionCode 10020).
+
 ## [1.0.19] - 2026-10-30
 - Bump version to 1.0.19 (versionCode 10019).
 - Update repository version across all configuration files and assets.
