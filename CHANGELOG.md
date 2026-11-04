@@ -1,5 +1,8 @@
 # Changelog
 
+## [1.0.21] - 2026-11-04
+- Release v1.0.21 with enhanced Google Drive storage aggregation and build artifacts.
+
 ## [1.0.20] - 2026-11-03
 - Bump version to 1.0.20 (versionCode 10020).
 

@@ -1,11 +1,11 @@
 {
   "major": 1,
   "minor": 0,
-  "patch": 20,
-  "versionName": "1.0.20",
-  "versionCode": 10020,
-  "version": "1.0.20",
-  "commitHash": "cf5811b",
-  "fullVersion": "v1.0.20",
-  "buildTimestamp": "2026-10-30T12:00:00Z"
+  "patch": 21,
+  "versionName": "1.0.21",
+  "versionCode": 10021,
+  "version": "1.0.21",
+  "commitHash": "9a5feeb",
+  "fullVersion": "v1.0.21",
+  "buildTimestamp": "2026-11-04T12:00:00Z"
 }
