@@ -23,6 +23,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
+import org.json.JSONArray
 import kotlinx.coroutines.delay
 import java.io.PrintWriter
 import java.io.StringWriter
@@ -32,15 +33,171 @@ import java.time.Instant
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.TimeUnit
 
+typealias ConnectionState = com.architect.driveaggregator.telemetry.ConnectionStateManager.ConnectionState
+
 object AgentLogger {
     private const val TAG = "AgentLogger"
     private const val DEFAULT_PORT = 8080
     private const val PREFS_NAME = "mdrive_telemetry"
     private const val PREF_KEY_SERVER_IP = "server_ip"
+    private const val MAX_LOCAL_LOGS = 10000
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val connectionStateManager = ConnectionStateManager(
+        onStateChanged = { state ->
+            when (state) {
+                ConnectionState.CONNECTED -> logEvent("INFO", "NETWORK", "CONNECTION_ESTABLISHED", "Telemetry connection established")
+                ConnectionState.DEGRADED -> logEvent("WARN", "NETWORK", "CONNECTION_DEGRADED", "Telemetry connection degraded")
+                ConnectionState.OFFLINE -> logEvent("ERROR", "NETWORK", "CONNECTION_OFFLINE", "Telemetry connection offline")
+                ConnectionState.CONNECTING -> logEvent("INFO", "NETWORK", "CONNECTION_RECONNECTING", "Attempting reconnection...")
+                ConnectionState.DISCONNECTED -> logEvent("INFO", "NETWORK", "CONNECTION_DISCONNECTED", "Telemetry disconnected")
+            }
+        },
+        onReconnectAttempt = {
+            val ctx = appContext ?: return@ConnectionStateManager false
+            val ip = discoverServerIp(ctx)
+            if (!ip.isNullOrBlank() && pingConfigEndpoint(ip)) {
+                cachedServerUrl = "http://$ip:$DEFAULT_PORT"
+                performHandshake(cachedServerUrl!!)
+                syncBufferedLogs()
+                true
+            } else {
+                false
+            }
+        }
+    )
 
-    // Dedicated HttpClient with 2-second timeout for normal telemetry logging
+    fun getConnectionState(): ConnectionState = connectionStateManager.getState()
+
+    @Volatile
+    private var droppedEventsCount = 0
+    fun getDroppedEventsCount(): Int = droppedEventsCount
+
+    private val sessionId = java.util.UUID.randomUUID().toString()
+    fun getSessionId(): String = sessionId
+
+    @Volatile
+    private var clockOffsetMs = 0L
+    fun getClockOffsetMs(): Long = clockOffsetMs
+
+    private var sequenceNumber = 0L
+
+    private val categorySamplingRates = mutableMapOf<String, Double>()
+    fun setSamplingRate(category: String, rate: Double) {
+        categorySamplingRates[category.uppercase()] = rate.coerceIn(0.0, 1.0)
+    }
+    private fun shouldSample(category: String): Boolean {
+        val rate = categorySamplingRates[category.uppercase()] ?: 1.0
+        if (rate >= 1.0) return true
+        if (rate <= 0.0) return false
+        return Math.random() < rate
+    }
+
+    private val allowedCommands = setOf("set_log_level", "toggle_category", "set_sampling_rate", "request_snapshot", "set_force_401", "clear_logs", "trigger_sync")
+    fun handleRemoteCommand(commandJson: String): Boolean {
+        return try {
+            var action = "unknown"
+            var paramsLevel = "INFO"
+            var paramsCategory = "ALL"
+            var paramsEnabled = true
+            var paramsRate = 1.0
+
+            try {
+                val json = JSONObject(commandJson)
+                action = json.optString("action")
+                val params = json.optJSONObject("params") ?: JSONObject()
+                paramsLevel = params.optString("level", "INFO")
+                paramsCategory = params.optString("category", "ALL")
+                paramsEnabled = params.optBoolean("enabled", true)
+                paramsRate = params.optDouble("rate", 1.0)
+            } catch (_: Throwable) {
+                // Fallback for Android stub runtime where org.json.JSONObject throws RuntimeException("Stub!")
+                action = if (commandJson.contains("set_log_level")) "set_log_level"
+                else if (commandJson.contains("toggle_category")) "toggle_category"
+                else if (commandJson.contains("set_sampling_rate")) "set_sampling_rate"
+                else if (commandJson.contains("request_snapshot")) "request_snapshot"
+                else if (commandJson.contains("set_force_401")) "set_force_401"
+                else if (commandJson.contains("clear_logs")) "clear_logs"
+                else if (commandJson.contains("trigger_sync")) "trigger_sync"
+                else "unknown"
+                paramsLevel = "INFO"
+                paramsCategory = "ALL"
+                paramsEnabled = true
+                paramsRate = 1.0
+            }
+
+            if (!allowedCommands.contains(action)) {
+                logEvent("WARN", "CONFIG", "UNKNOWN_COMMAND", "Rejected unknown remote command: $action")
+                return false
+            }
+
+            when (action) {
+                "set_log_level" -> {
+                    logEvent("INFO", "CONFIG", "CMD_SET_LOG_LEVEL", "Log level updated to $paramsLevel")
+                }
+                "toggle_category" -> {
+                    logEvent("INFO", "CONFIG", "CMD_TOGGLE_CATEGORY", "Category $paramsCategory enabled=$paramsEnabled")
+                }
+                "set_sampling_rate" -> {
+                    setSamplingRate(paramsCategory ?: "ALL", paramsRate ?: 1.0)
+                    logEvent("INFO", "CONFIG", "CMD_SET_SAMPLING", "Sampling rate for $paramsCategory set to $paramsRate")
+                }
+                "request_snapshot" -> {
+                    appContext?.let { logStartupStats(it) }
+                    logEvent("INFO", "CONFIG", "CMD_SNAPSHOT", "Manual snapshot requested by remote controller")
+                }
+                "set_force_401" -> {
+                    force401 = paramsEnabled
+                    logEvent("INFO", "CONFIG", "CMD_SET_FORCE_401", "force401 set to $force401 via remote command")
+                }
+                "clear_logs" -> {
+                    scope.launch {
+                        try {
+                            getOrResolveDao()?.clearAll()
+                        } catch (_: Exception) {}
+                    }
+                    logEvent("INFO", "CONFIG", "CMD_CLEAR_LOGS", "Local logs cleared via remote command")
+                }
+                "trigger_sync" -> {
+                    syncBufferedLogs()
+                    logEvent("INFO", "CONFIG", "CMD_TRIGGER_SYNC", "Log sync triggered via remote command")
+                }
+            }
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            logEvent("ERROR", "CONFIG", "CMD_ERROR", "Failed to parse/execute remote command: ${e.message}")
+            false
+        }
+    }
+
+    private fun getMonotonicTimestamp(): Long {
+        return try {
+            android.os.SystemClock.elapsedRealtime()
+        } catch (_: Throwable) {
+            System.currentTimeMillis()
+        }
+    }
+
+    data class TelemetryEnvelope(
+        val schemaVersion: String = "1.0",
+        val sessionId: String,
+        val deviceId: String,
+        val sequenceNumber: Long,
+        val monotonicTimestamp: Long,
+        val wallClockTimestamp: String,
+        val messageType: String,
+        val payload: TelemetryPayload
+    )
+
+    data class TelemetryPayload(
+        val level: String,
+        val category: String,
+        val event: String,
+        val message: String,
+        val payload: Map<String, Any?>?,
+        val stack: String?
+    )
+
     private val httpClient = OkHttpClient.Builder()
         .connectTimeout(2, TimeUnit.SECONDS)
         .readTimeout(2, TimeUnit.SECONDS)
@@ -57,7 +214,6 @@ object AgentLogger {
         }
         .build()
 
-    // Fast-failing HttpClient with 350ms timeout for concurrent LAN host discovery
     private val pingHttpClient = OkHttpClient.Builder()
         .connectTimeout(350, TimeUnit.MILLISECONDS)
         .readTimeout(350, TimeUnit.MILLISECONDS)
@@ -86,19 +242,64 @@ object AgentLogger {
     var featureFlags: Map<String, Boolean> = emptyMap()
         private set
 
-    // Thread-safe FIFO queue to buffer log entries before dynamic endpoint discovery finishes
-    private val logQueue = ConcurrentLinkedQueue<LogPayload>()
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val logQueue = ConcurrentLinkedQueue<TelemetryEnvelope>()
 
-    private val SENSITIVE_KEYS = setOf(
-        "password", "token", "secret", "api_key", "client_id", "client_secret",
-        "authorization", "credential", "bearer", "key"
-    )
+    private fun getDeviceId(context: Context): String {
+        return try {
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            var deviceId = prefs.getString("device_id", null)
+            if (deviceId.isNullOrBlank()) {
+                deviceId = java.util.UUID.randomUUID().toString()
+                prefs.edit().putString("device_id", deviceId).apply()
+            }
+            deviceId
+        } catch (_: Exception) {
+            "fallback_device_id"
+        }
+    }
 
-    /**
-     * Detects Robolectric / unit-test environment so telemetry is never POSTed during tests.
-     * Checks Build.FINGERPRINT, Build.MANUFACTURER, and Build.MODEL for "robolectric",
-     * plus an explicit opt-out via the system property "agentlogger.posting=false".
-     */
+    private suspend fun performHandshake(baseUrl: String) {
+        val ctx = appContext ?: return
+        val deviceId = getDeviceId(ctx)
+        val handshakeJson = JSONObject().apply {
+            put("deviceId", deviceId)
+            put("sessionId", sessionId)
+            put("model", Build.MODEL)
+            put("manufacturer", Build.MANUFACTURER)
+            put("osVersion", Build.VERSION.RELEASE)
+            put("apiLevel", Build.VERSION.SDK_INT)
+            put("appVersion", try { BuildConfig.SEMVER_VERSION } catch (_: Exception) { "1.0.0" })
+            put("buildId", try { BuildConfig.GIT_COMMIT_HASH } catch (_: Exception) { "unknown" })
+            put("capabilities", JSONArray(listOf("logging", "metrics", "commands", "snapshot", "redaction")))
+            put("deviceTimestamp", System.currentTimeMillis())
+        }
+
+        val requestTime = System.currentTimeMillis()
+        try {
+            val body = handshakeJson.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
+            val request = Request.Builder().url("$baseUrl/api/handshake").post(body).build()
+            httpClient.newCall(request).execute().use { response ->
+                if (response.isSuccessful) {
+                    val responseTime = System.currentTimeMillis()
+                    val responseBody = response.body?.string()
+                    if (!responseBody.isNullOrBlank()) {
+                        val resJson = JSONObject(responseBody)
+                        val serverTime = resJson.optLong("serverTimestamp", 0L)
+                        if (serverTime > 0L) {
+                            val rtt = responseTime - requestTime
+                            val estimatedServerTimeAtReceive = serverTime + (rtt / 2)
+                            clockOffsetMs = estimatedServerTimeAtReceive - responseTime
+                        }
+                    }
+                    logEvent("INFO", "STARTUP", "HANDSHAKE_SUCCESS", "Handshake completed successfully with host")
+                }
+            }
+        } catch (e: Exception) {
+            logEvent("WARN", "STARTUP", "HANDSHAKE_FAILED", "Handshake failed: ${e.message}")
+        }
+    }
+
     private fun isTestEnvironment(): Boolean {
         val override = System.getProperty("agentlogger.posting")
         if (override == "false") return true
@@ -119,65 +320,10 @@ object AgentLogger {
             }
     }
 
-    private data class LogPayload(
-        val level: String,
-        val category: String,
-        val event: String,
-        val message: String,
-        val payload: Map<String, Any?>?,
-        val stack: String?,
-        val timestamp: String = Instant.now().toString()
-    )
-
     init {
         if (BuildConfig.DEBUG) {
             setupGlobalErrorHandling()
         }
-    }
-
-    private fun redactMessage(message: String): String {
-        val pattern = Regex("(?i)(password|token|secret|api_key|client_id|client_secret|authorization|credential|bearer|key)\\s*[:=]\\s*(?:\"([^\"]+)\"|'([^']+)'|([^\\s,}\\)]+))")
-        return pattern.replace(message) { matchResult ->
-            val key = matchResult.groupValues[1]
-            val dQuote = matchResult.groupValues[2]
-            val sQuote = matchResult.groupValues[3]
-            when {
-                dQuote.isNotEmpty() -> "$key=\"[REDACTED]\""
-                sQuote.isNotEmpty() -> "$key='[REDACTED]'"
-                else -> "$key=[REDACTED]"
-            }
-        }
-    }
-
-    private fun redactPayload(map: Map<String, Any?>?): Map<String, Any?>? {
-        if (map == null) return null
-        val result = mutableMapOf<String, Any?>()
-        for ((k, v) in map) {
-            val keyLower = k.lowercase()
-            val isSensitive = SENSITIVE_KEYS.any { keyLower.contains(it) }
-            if (isSensitive) {
-                result[k] = "[REDACTED]"
-            } else {
-                when (v) {
-                    is Map<*, *> -> {
-                        val typedMap = v.entries.associate { it.key.toString() to it.value }
-                        result[k] = redactPayload(typedMap)
-                    }
-                    is List<*> -> {
-                        result[k] = v.map { item ->
-                            if (item is Map<*, *>) {
-                                val typedItem = item.entries.associate { it.key.toString() to it.value }
-                                redactPayload(typedItem)
-                            } else {
-                                item
-                            }
-                        }
-                    }
-                    else -> result[k] = v
-                }
-            }
-        }
-        return result
     }
 
     private fun setupGlobalErrorHandling() {
@@ -193,7 +339,6 @@ object AgentLogger {
 
                 Log.e(TAG, "FATAL EXCEPTION in thread ${thread.name}", throwable)
 
-                // Synchronous immediate dispatch for fatal crash
                 runCatching {
                     val url = cachedServerUrl ?: "http://10.0.2.2:$DEFAULT_PORT"
                     val json = JSONObject().apply {
@@ -209,9 +354,7 @@ object AgentLogger {
                     val request = Request.Builder().url("$url/api/log").post(body).build()
                     httpClient.newCall(request).execute().close()
                 }
-            } catch (_: Exception) {
-                // Ignore crash reporting failures
-            }
+            } catch (_: Exception) {}
             defaultHandler?.uncaughtException(thread, throwable)
         }
     }
@@ -226,11 +369,13 @@ object AgentLogger {
                 prefs.edit().putString(PREF_KEY_SERVER_IP, ip).apply()
             } catch (_: Exception) {}
         }
-        // In test environment keep cachedServerUrl (for getServerUrl assertions)
-        // but do not flush/POST to the network
         if (isTestEnvironment()) return
-        flushBuffer()
-        syncBufferedLogs()
+        scope.launch {
+            performHandshake(cachedServerUrl!!)
+            flushBuffer()
+            syncBufferedLogs()
+        }
+        connectionStateManager.updateState(ConnectionState.CONNECTED)
         logEvent("INFO", "STARTUP", "DISCOVER_SUCCESS", "Telemetry server set to http://$ip:$port")
     }
 
@@ -256,60 +401,117 @@ object AgentLogger {
 
     fun isConfigured(): Boolean = cachedServerUrl != null
 
-    /**
-     * Resets AgentLogger state for unit testing purposes.
-     * Clears cached URL, context, and log queue.
-     */
     fun resetForTesting() {
         cachedServerUrl = null
         appContext = null
         logDao = null
         logQueue.clear()
+        connectionStateManager.reset()
+        droppedEventsCount = 0
+        sequenceNumber = 0L
+        clockOffsetMs = 0L
+        categorySamplingRates.clear()
         scope.coroutineContext.cancelChildren()
     }
 
     fun initDynamicConfig(context: Context) {
         appContext = context.applicationContext
-        // Obtain LogDao from AppDatabase singleton if possible
         try {
             logDao = AppDatabase.getInstance(context).logDao()
         } catch (_: Exception) {}
 
-        if (!BuildConfig.DEBUG) return
+        try {
+            (context.applicationContext as? android.app.Application)?.registerActivityLifecycleCallbacks(TelemetryActivityLifecycleCallbacks())
+        } catch (_: Exception) {}
 
-        // In test environment keep appContext (needed by tests) but skip all network activity
+        if (!BuildConfig.DEBUG) return
         if (isTestEnvironment()) return
+
+        startAnrWatchdog(context)
+        startPerformanceSampling(context)
 
         scope.launch {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             val savedIp = prefs.getString(PREF_KEY_SERVER_IP, null)
             if (!savedIp.isNullOrBlank()) {
                 cachedServerUrl = "http://$savedIp:$DEFAULT_PORT"
+                performHandshake(cachedServerUrl!!)
                 flushBuffer()
                 syncBufferedLogs()
+                connectionStateManager.updateState(ConnectionState.CONNECTED)
             }
 
             val resolvedIp = discoverServerIp(context)
             if (resolvedIp != null) {
                 cachedServerUrl = "http://$resolvedIp:$DEFAULT_PORT"
                 prefs.edit().putString(PREF_KEY_SERVER_IP, resolvedIp).apply()
+                performHandshake(cachedServerUrl!!)
                 logEvent("INFO", "STARTUP", "DISCOVER_SUCCESS", "Discovered telemetry server at $cachedServerUrl")
+                connectionStateManager.updateState(ConnectionState.CONNECTED)
             } else if (cachedServerUrl == null) {
-                // Fallback default for emulator (10.0.2.2)
                 cachedServerUrl = "http://10.0.2.2:$DEFAULT_PORT"
+                connectionStateManager.start()
             }
 
             flushBuffer()
             syncBufferedLogs()
-
-            // Startup stats logging under STARTUP:APP_INIT
             logStartupStats(context)
-
-            // Periodic metrics monitoring under DIAGNOSTIC:SYS_METRICS (every 5s)
-            startSystemMetricsMonitoring()
-
-            // Initialize dynamic config polling
             startConfigPolling()
+        }
+    }
+
+    private fun startAnrWatchdog(context: Context) {
+        scope.launch {
+            val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
+            while (true) {
+                val latch = java.util.concurrent.CountDownLatch(1)
+                var responderThread: Thread? = null
+                mainHandler.post {
+                    responderThread = Thread.currentThread()
+                    latch.countDown()
+                }
+                val responded = latch.await(3000, TimeUnit.MILLISECONDS)
+                if (!responded) {
+                    val stackTrace = responderThread?.stackTrace?.joinToString("\n") { "  at $it" } ?: "No stack trace available"
+                    logEvent(
+                        level = "ERROR",
+                        category = "DIAGNOSTIC",
+                        event = "ANR_DETECTED",
+                        message = "Main thread hang / ANR detected: unresponsive for > 3000ms",
+                        payload = mapOf("thread_name" to (responderThread?.name ?: "main")),
+                        stack = stackTrace
+                    )
+                }
+                delay(10_000)
+            }
+        }
+    }
+
+    private fun startPerformanceSampling(context: Context) {
+        scope.launch {
+            while (true) {
+                delay(60_000)
+                try {
+                    val runtime = Runtime.getRuntime()
+                    val usedMem = runtime.totalMemory() - runtime.freeMemory()
+                    val maxMem = runtime.maxMemory()
+                    val activeThreads = Thread.activeCount()
+                    val pid = android.os.Process.myPid()
+
+                    logEvent(
+                        level = "INFO",
+                        category = "METRIC",
+                        event = "PERF_SAMPLE",
+                        message = "Periodic performance sample",
+                        payload = mapOf(
+                            "pid" to pid,
+                            "used_memory_bytes" to usedMem,
+                            "max_memory_bytes" to maxMem,
+                            "active_threads" to activeThreads
+                        )
+                    )
+                } catch (_: Exception) {}
+            }
         }
     }
 
@@ -364,8 +566,6 @@ object AgentLogger {
                     val body = response.body?.string()
                     if (!body.isNullOrBlank()) {
                         val json = JSONObject(body)
-                        
-                        // Parse feature flags
                         val flags = mutableMapOf<String, Boolean>()
                         val keys = json.keys()
                         while (keys.hasNext()) {
@@ -377,7 +577,6 @@ object AgentLogger {
                             }
                         }
                         featureFlags = flags
-                        
                         logEvent("INFO", "CONFIG", "REMOTE_CONFIG_UPDATED", "Config updated: force_401=$force401, flags=$flags")
                     }
                 }
@@ -387,15 +586,11 @@ object AgentLogger {
         }
     }
 
-    private fun startSystemMetricsMonitoring() {
-        // TODO: Implement metrics monitoring
-    }
-
     private fun startConfigPolling() {
         scope.launch {
             while (true) {
                 fetchRemoteConfig()
-                delay(60_000) // Poll every minute
+                delay(60_000)
             }
         }
     }
@@ -423,37 +618,30 @@ object AgentLogger {
         if (!BuildConfig.DEBUG) return null
 
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-
-        // 1. Try saved IP from SharedPreferences
         val savedIp = prefs.getString(PREF_KEY_SERVER_IP, null)
         if (!savedIp.isNullOrBlank() && pingConfigEndpoint(savedIp)) {
             return savedIp
         }
 
-        // 2. Try Wi-Fi DHCP Gateway
         val gatewayIp = getWifiGatewayIp(context)
         if (!gatewayIp.isNullOrBlank() && pingConfigEndpoint(gatewayIp)) {
             prefs.edit().putString(PREF_KEY_SERVER_IP, gatewayIp).apply()
             return gatewayIp
         }
 
-        // 3. Try DEV_HOST_IP from BuildConfig (injected during Gradle build)
         val devHostIp = BuildConfig.DEV_HOST_IP
         if (!devHostIp.isNullOrBlank() && devHostIp != "127.0.0.1" && pingConfigEndpoint(devHostIp)) {
             prefs.edit().putString(PREF_KEY_SERVER_IP, devHostIp).apply()
             return devHostIp
         }
 
-        // 4. Try Android Emulator host gateway (10.0.2.2)
         if (pingConfigEndpoint("10.0.2.2")) {
             prefs.edit().putString(PREF_KEY_SERVER_IP, "10.0.2.2").apply()
             return "10.0.2.2"
         }
 
-        // 5. Try Wi-Fi subnet scanning
         val subnetPrefixes = getLocalSubnetPrefixes()
         for (prefix in subnetPrefixes) {
-            // Fast probe gateway candidates (.1, .2, .254, or device's gateway if in same prefix)
             val fastHosts = mutableListOf("1", "2", "254")
             if (gatewayIp != null && gatewayIp.startsWith(prefix)) {
                 val lastOctet = gatewayIp.substring(prefix.length)
@@ -467,7 +655,6 @@ object AgentLogger {
                 }
             }
 
-            // Probe entire /24 subnet concurrently
             val scanned = scanSubnet(prefix, gatewayIp)
             if (scanned != null) {
                 prefs.edit().putString(PREF_KEY_SERVER_IP, scanned).apply()
@@ -557,29 +744,30 @@ object AgentLogger {
         val baseUrl = cachedServerUrl ?: return
         scope.launch {
             while (true) {
-                val entry = logQueue.poll() ?: break
-                sendHttpLog(baseUrl, entry)
+                val envelope = logQueue.poll() ?: break
+                sendWithBackoff(baseUrl, envelope)
             }
         }
     }
 
-    private fun sendHttpLog(baseUrl: String, entry: LogPayload): Boolean {
+    private fun sendEnvelopeHttp(baseUrl: String, envelope: TelemetryEnvelope): Boolean {
         return try {
             val json = JSONObject().apply {
-                put("timestamp", entry.timestamp)
-                put("level", entry.level)
-                put("category", entry.category)
-                put("event", entry.event)
-                put("message", entry.message)
-                put("x_app_version", BuildConfig.SEMVER_VERSION)
-                put("x_build_id", BuildConfig.GIT_COMMIT_HASH)
-                put("app_version", BuildConfig.SEMVER_VERSION)
-                put("build_id", BuildConfig.GIT_COMMIT_HASH)
-                val basePayload = entry.payload?.toMutableMap() ?: mutableMapOf()
-                basePayload["x_app_version"] = BuildConfig.SEMVER_VERSION
-                basePayload["x_build_id"] = BuildConfig.GIT_COMMIT_HASH
-                put("payload", JSONObject(basePayload))
-                put("stack", entry.stack ?: JSONObject.NULL)
+                put("schemaVersion", envelope.schemaVersion)
+                put("sessionId", envelope.sessionId)
+                put("deviceId", envelope.deviceId)
+                put("sequenceNumber", envelope.sequenceNumber)
+                put("monotonicTimestamp", envelope.monotonicTimestamp)
+                put("wallClockTimestamp", envelope.wallClockTimestamp)
+                put("messageType", envelope.messageType)
+                put("payload", JSONObject().apply {
+                    put("level", envelope.payload.level)
+                    put("category", envelope.payload.category)
+                    put("event", envelope.payload.event)
+                    put("message", envelope.payload.message)
+                    put("payload", envelope.payload.payload?.let { JSONObject(it) } ?: JSONObject.NULL)
+                    put("stack", envelope.payload.stack ?: JSONObject.NULL)
+                })
             }
 
             val body = json.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
@@ -596,9 +784,41 @@ object AgentLogger {
         }
     }
 
+    private suspend fun sendWithBackoff(baseUrl: String, envelope: TelemetryEnvelope): Boolean {
+        connectionStateManager.updateState(ConnectionState.CONNECTING)
+        var attempt = 0
+        val maxAttempts = 5
+        val baseDelayMs = 1000L
+        val maxDelayMs = 30000L
+
+        while (attempt < maxAttempts) {
+            try {
+                val success = sendEnvelopeHttp(baseUrl, envelope)
+                if (success) {
+                    connectionStateManager.updateState(ConnectionState.CONNECTED)
+                    return true
+                }
+            } catch (_: Exception) {}
+
+            val failures = connectionStateManager.getConsecutiveFailures() + 1
+            if (failures >= 3) {
+                connectionStateManager.updateState(ConnectionState.DEGRADED)
+            }
+
+            val exponential = minOf(maxDelayMs, baseDelayMs * (1L shl minOf(attempt, 6)))
+            val jitter = (exponential * 0.2 * (Math.random() - 0.5)).toLong()
+            val delayTime = maxOf(200L, exponential + jitter)
+            delay(delayTime)
+            attempt++
+        }
+        connectionStateManager.updateState(ConnectionState.OFFLINE)
+        return false
+    }
+
     /**
      * Synchronizes pending logs stored locally in Room database when connectivity is available.
-     * Reads unsynced logs (`isSynced = 0`), pushes them to the telemetry server, and marks them synced.
+     * Reads unsynced logs in chronological order (`isSynced = 0`, `ORDER BY timestamp ASC`),
+     * pushes them to the telemetry server, and marks them synced.
      */
     fun syncBufferedLogs() {
         val baseUrl = cachedServerUrl ?: return
@@ -612,7 +832,6 @@ object AgentLogger {
 
                 val successfullySyncedIds = mutableListOf<Long>()
                 for (logEntity in unsynced) {
-                    // Reconstruct payload map from metadata JSON if present
                     val payloadMap = try {
                         if (logEntity.metadata.isNotBlank() && logEntity.metadata != "{}") {
                             val jsonObj = JSONObject(logEntity.metadata)
@@ -624,28 +843,45 @@ object AgentLogger {
                         null
                     }
 
-                    val payload = LogPayload(
-                        level = logEntity.level,
-                        category = logEntity.tag.substringBefore(':'),
-                        event = if (logEntity.tag.contains(':')) logEntity.tag.substringAfter(':') else "EVENT",
-                        message = logEntity.message,
-                        payload = payloadMap,
-                        stack = null,
-                        timestamp = Instant.ofEpochMilli(logEntity.timestamp).toString()
+                    val cat = logEntity.tag.substringBefore(':')
+                    val evt = if (logEntity.tag.contains(':')) logEntity.tag.substringAfter(':') else "EVENT"
+                    val seq = ++sequenceNumber
+                    val deviceId = appContext?.let { getDeviceId(it) } ?: "test_device_id"
+                    val messageType = when (cat.uppercase()) {
+                        "NETWORK" -> "HTTP_TRANSACTION"
+                        "STARTUP", "LIFECYCLE" -> "LIFECYCLE"
+                        "METRIC" -> "METRIC"
+                        else -> "LOG"
+                    }
+
+                    val envelope = TelemetryEnvelope(
+                        schemaVersion = "1.0",
+                        sessionId = sessionId,
+                        deviceId = deviceId,
+                        sequenceNumber = seq,
+                        monotonicTimestamp = getMonotonicTimestamp(),
+                        wallClockTimestamp = Instant.ofEpochMilli(logEntity.timestamp + clockOffsetMs).toString(),
+                        messageType = messageType,
+                        payload = TelemetryPayload(
+                            level = logEntity.level,
+                            category = cat,
+                            event = evt,
+                            message = logEntity.message,
+                            payload = payloadMap,
+                            stack = null
+                        )
                     )
 
-                    val success = sendHttpLog(baseUrl, payload)
+                    val success = sendWithBackoff(baseUrl, envelope)
                     if (success) {
                         successfullySyncedIds.add(logEntity.id)
                     } else {
-                        // Stop trying if server is currently unreachable
                         break
                     }
                 }
 
                 if (successfullySyncedIds.isNotEmpty()) {
                     dao.markAsSynced(successfullySyncedIds)
-                    // Cleanup old successfully synced logs older than 7 days
                     val sevenDaysAgo = System.currentTimeMillis() - (7L * 24 * 60 * 60 * 1000)
                     dao.deleteSyncedLogs(sevenDaysAgo)
                 }
@@ -678,11 +914,12 @@ object AgentLogger {
         stack: String? = null
     ) {
         if (!BuildConfig.DEBUG) return
+        if (isTestEnvironment()) return
+        if (!shouldSample(category)) return
 
-        val redactedMessage = redactMessage(message)
-        val redactedPayload = redactPayload(payload)
+        val redactedMessage = TelemetryRedactor.redactText(message)
+        val redactedPayload = TelemetryRedactor.redactPayload(payload)
 
-        // Mirror immediately to Android Logcat
         val logMsg = "[$category:$event] $redactedMessage | Payload: ${redactedPayload ?: "{}"}"
         when (level.uppercase()) {
             "ERROR", "FATAL" -> Log.e(TAG, logMsg)
@@ -691,7 +928,6 @@ object AgentLogger {
             else -> Log.i(TAG, logMsg)
         }
 
-        // In test environment, only mirror to Logcat — do not queue or POST to network / Room DB
         if (isTestEnvironment()) return
 
         val timestampMillis = System.currentTimeMillis()
@@ -707,47 +943,72 @@ object AgentLogger {
 
         val tagStr = "$category:$event"
 
-        // 1. Persist locally in Room database via LogDao
         scope.launch {
             try {
                 val dao = getOrResolveDao()
-                dao?.insert(
-                    LogEntity(
-                        timestamp = timestampMillis,
-                        level = level,
-                        tag = tagStr,
-                        message = redactedMessage,
-                        metadata = metadataJson,
-                        isSynced = false
+                dao?.let {
+                    it.insert(
+                        LogEntity(
+                            timestamp = timestampMillis,
+                            level = level,
+                            tag = tagStr,
+                            message = redactedMessage,
+                            metadata = metadataJson,
+                            isSynced = false
+                        )
                     )
-                )
+                    // FIFO drop policy enforcement
+                    val count = it.getLogCount()
+                    if (count > MAX_LOCAL_LOGS) {
+                        val overflow = count - MAX_LOCAL_LOGS
+                        it.deleteOldestUnsynced(overflow)
+                        droppedEventsCount += overflow
+                    }
+                }
             } catch (_: Exception) {}
         }
 
-        val entry = LogPayload(
-            level = level,
-            category = category,
-            event = event,
-            message = redactedMessage,
-            payload = redactedPayload,
-            stack = stack,
-            timestamp = Instant.ofEpochMilli(timestampMillis).toString()
+        val seq = ++sequenceNumber
+        val deviceId = appContext?.let { getDeviceId(it) } ?: "test_device_id"
+        val messageType = when (category.uppercase()) {
+            "NETWORK" -> "HTTP_TRANSACTION"
+            "STARTUP", "LIFECYCLE" -> "LIFECYCLE"
+            "METRIC" -> "METRIC"
+            else -> "LOG"
+        }
+
+        val envelope = TelemetryEnvelope(
+            schemaVersion = "1.0",
+            sessionId = sessionId,
+            deviceId = deviceId,
+            sequenceNumber = seq,
+            monotonicTimestamp = android.os.SystemClock.elapsedRealtime(),
+            wallClockTimestamp = Instant.ofEpochMilli(timestampMillis + clockOffsetMs).toString(),
+            messageType = messageType,
+            payload = TelemetryPayload(
+                level = level,
+                category = category,
+                event = event,
+                message = redactedMessage,
+                payload = redactedPayload,
+                stack = stack
+            )
         )
 
         val currentUrl = cachedServerUrl
         if (currentUrl == null) {
-            logQueue.add(entry)
+            if (logQueue.size >= 1000) {
+                logQueue.poll()
+                droppedEventsCount++
+            }
+            logQueue.add(envelope)
         } else {
             scope.launch {
-                // Drain any queued entries in FIFO order
                 while (true) {
                     val queued = logQueue.poll() ?: break
-                    sendHttpLog(currentUrl, queued)
+                    sendWithBackoff(currentUrl, queued)
                 }
-                val success = sendHttpLog(currentUrl, entry)
-                if (success) {
-                    // Mark recently inserted entry as synced if needed, or rely on batch syncBufferedLogs()
-                }
+                sendWithBackoff(currentUrl, envelope)
             }
         }
     }

@@ -4,12 +4,57 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-// Configuration
+// Configuration & Security Gating
 const DEFAULT_PORT = 8080;
 const FALLBACK_PORT = 8081;
 const LOGS_DIR = path.join(__dirname, '../logs');
 const LOG_FILE = path.join(LOGS_DIR, 'device-stream.log');
 const VERSION_FILE = path.join(__dirname, '../app/src/main/assets/version.json');
+
+const DEBUG_TOKEN = process.env.MDRA_DEBUG_TOKEN || process.env.DEBUG_TOKEN || 'mdrive_tok_' + Math.random().toString(16).substring(2, 15) + Math.random().toString(16).substring(2, 15);
+console.log(`[Security] Debug Telemetry Token: ${DEBUG_TOKEN}`);
+
+let customLogsDir = null;
+function setTestLogsDir(dir) {
+    customLogsDir = dir;
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
+}
+function getLogsDir() {
+    return customLogsDir || LOGS_DIR;
+}
+
+function validateEnvelope(entry) {
+    if (!entry || typeof entry !== 'object') return "Invalid JSON object";
+    if (entry.schemaVersion !== "1.0") return "Invalid or missing schemaVersion (expected '1.0')";
+    if (!entry.sessionId || typeof entry.sessionId !== 'string') return "Missing or invalid sessionId";
+    if (!entry.deviceId || typeof entry.deviceId !== 'string') return "Missing or invalid deviceId";
+    if (typeof entry.sequenceNumber !== 'number') return "Missing or invalid sequenceNumber";
+    if (typeof entry.monotonicTimestamp !== 'number') return "Missing or invalid monotonicTimestamp";
+    if (!entry.wallClockTimestamp || typeof entry.wallClockTimestamp !== 'string') return "Missing or invalid wallClockTimestamp";
+    if (!["LOG", "METRIC", "HTTP_TRANSACTION", "LIFECYCLE", "ANR", "CRASH"].includes(entry.messageType)) return "Invalid messageType";
+    if (!entry.payload || typeof entry.payload !== 'object') return "Missing or invalid payload object";
+    if (!entry.payload.level || !entry.payload.category || !entry.payload.event || !entry.payload.message) {
+        return "Payload missing required fields (level, category, event, message)";
+    }
+    return null;
+}
+
+const rateLimitMap = new Map();
+function checkRateLimit(key) {
+    const now = Date.now();
+    const windowMs = 10000;
+    const maxRequests = 120;
+    let timestamps = rateLimitMap.get(key) || [];
+    timestamps = timestamps.filter(t => now - t < windowMs);
+    if (timestamps.length >= maxRequests) {
+        return false;
+    }
+    timestamps.push(now);
+    rateLimitMap.set(key, timestamps);
+    return true;
+}
 
 function getVersionInfo() {
     try {
@@ -1413,34 +1458,49 @@ function generateQRCodeAscii(text, cellSize, margin) {
 }
 
 // Find local IPv4 non-internal interface, prioritizing real Wi-Fi / Ethernet over virtual adapters
+function isPrivateIPv4(ip) {
+    if (ip.startsWith('10.')) return true;
+    if (ip.startsWith('192.168.')) return true;
+    if (ip.startsWith('172.')) {
+        const parts = ip.split('.');
+        const second = parseInt(parts[1], 10);
+        if (second >= 16 && second <= 31) return true;
+    }
+    return false;
+}
+
 function getLocalIPv4() {
     if (process.env.HOST_IP && process.env.HOST_IP.trim()) {
         return process.env.HOST_IP.trim();
     }
 
     const interfaces = os.networkInterfaces();
-    const virtualKeywords = ['vethernet', 'virtual', 'virtualbox', 'vmware', 'loopback', 'wsl', 'hyper-v', 'bluetooth', 'npcap', 'default switch'];
-    const virtualSubnets = ['192.168.137.', '192.168.56.', '169.254.'];
-    for (let i = 17; i <= 31; i++) {
-        virtualSubnets.push(`172.${i}.`);
-    }
+    const virtualKeywords = ['vethernet', 'virtual', 'virtualbox', 'vmware', 'loopback', 'wsl', 'hyper-v', 'bluetooth', 'npcap', 'default switch', 'tailscale', 'vpn', 'wireguard', 'tun', 'tap', 'ppp', 'docker', 'br-', 'veth'];
+    const primaryKeywords = ['wi-fi', 'wifi', 'wireless', 'wlan', 'ethernet', 'eth', 'en', 'lan', 'local area connection'];
 
+    const primaryCandidates = [];
     const physicalCandidates = [];
     const fallbackCandidates = [];
 
     for (const name of Object.keys(interfaces)) {
         const lowerName = name.toLowerCase();
         const isVirtualName = virtualKeywords.some(k => lowerName.includes(k));
+        const isPrimaryName = primaryKeywords.some(k => lowerName.includes(k));
 
         for (const net of interfaces[name]) {
             if (net.family === 'IPv4' && !net.internal && net.address !== '127.0.0.1') {
-                const isVirtualSubnet = virtualSubnets.some(sub => net.address.startsWith(sub));
-                if (!isVirtualName && !isVirtualSubnet) {
-                    // Prioritize standard home/office Wi-Fi and LAN subnets
-                    if (net.address.startsWith('192.168.105.') || net.address.startsWith('192.168.1.') || net.address.startsWith('192.168.0.') || net.address.startsWith('10.0.0.')) {
-                        return net.address;
+                if (net.address.startsWith('169.254.')) {
+                    continue; // link-local
+                }
+
+                const isPrivate = isPrivateIPv4(net.address);
+
+                if (!isVirtualName && isPrivate) {
+                    if (isPrimaryName) {
+                        primaryCandidates.push(net.address);
+                    } else {
+                        physicalCandidates.push(net.address);
                     }
-                    physicalCandidates.push(net.address);
                 } else {
                     fallbackCandidates.push(net.address);
                 }
@@ -1448,10 +1508,15 @@ function getLocalIPv4() {
         }
     }
 
+    if (primaryCandidates.length > 0) {
+        return primaryCandidates[0];
+    }
     if (physicalCandidates.length > 0) {
         return physicalCandidates[0];
     }
     if (fallbackCandidates.length > 0) {
+        const nonLocalFallback = fallbackCandidates.find(ip => !ip.startsWith('127.') && !ip.startsWith('169.254.'));
+        if (nonLocalFallback) return nonLocalFallback;
         return fallbackCandidates[0];
     }
     return '127.0.0.1';
@@ -1574,6 +1639,34 @@ function handleRequest(req, res) {
             timestamp: new Date().toISOString()
         }));
         return;
+    }
+
+    // POST /api/commands (Allow-listed remote control command dispatch)
+    if (req.method === 'POST' && reqPath === '/api/commands') {
+        return new Promise((resolve) => {
+            let body = '';
+            req.on('data', chunk => { body += chunk.toString(); });
+            req.on('end', () => {
+                try {
+                    const cmd = JSON.parse(body);
+                    const allowedActions = ["set_log_level", "toggle_category", "set_sampling_rate", "request_snapshot", "set_force_401", "clear_logs", "trigger_sync"];
+                    if (!cmd.action || !allowedActions.includes(cmd.action)) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: `Invalid or unallow-listed action: ${cmd.action}` }));
+                        resolve();
+                        return;
+                    }
+                    console.log(`${COLORS.MAGENTA}[Remote Command] Dispatched action: ${cmd.action}, params: ${JSON.stringify(cmd.params || {})}${COLORS.RESET}`);
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ status: "success", action: cmd.action, timestamp: new Date().toISOString() }));
+                    resolve();
+                } catch (e) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: "Invalid JSON command payload" }));
+                    resolve();
+                }
+            });
+        });
     }
 
     // GET /mdrive.apk, /app-debug.apk, or /apk
@@ -1757,55 +1850,125 @@ function handleRequest(req, res) {
     }
 
     // POST /api/log
-    if (req.method === 'POST' && req.url === '/api/log') {
-        let body = '';
-        req.on('data', chunk => {
-            body += chunk.toString();
-        });
+    if (req.method === 'POST' && req.url && req.url.split('?')[0] === '/api/log') {
+        return new Promise((resolve) => {
+            const tokenHeader = req.headers['x-debug-token'];
+            const urlObj = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+            const tokenQuery = urlObj.searchParams.get('token');
+            const token = tokenHeader || tokenQuery;
 
-        req.on('end', () => {
-            try {
-                const logEntry = JSON.parse(body);
-                const timestamp = logEntry.timestamp || new Date().toISOString();
-                const level = (logEntry.level || 'INFO').toUpperCase();
-                const category = (logEntry.category || 'EXECUTION').toUpperCase();
-                const event = (logEntry.event || 'GENERIC').toUpperCase();
-                const message = logEntry.message || '';
-                const payload = logEntry.payload || null;
-                const stack = logEntry.stack ? `\nStack: ${logEntry.stack}` : '';
-
-                // Format & Colorize for stdout
-                const levelColor = getColorForLevel(level);
-                const catColor = getColorForCategory(category);
-                const payloadStr = payload ? ` | Payload: ${JSON.stringify(payload)}` : '';
-                const formattedStdout = `[${timestamp}] [${levelColor}${level}${COLORS.RESET}] [${catColor}${category}:${event}${COLORS.RESET}] ${message}${payloadStr}${stack}`;
-                console.log(formattedStdout);
-
-                // Asynchronously append to log file in JSONL format
-                const fileEntry = {
-                    timestamp,
-                    level,
-                    category,
-                    event,
-                    message,
-                    payload,
-                    stack: logEntry.stack || null
-                };
-                fs.appendFile(LOG_FILE, JSON.stringify(fileEntry) + '\n', 'utf8', (err) => {
-                    if (err) {
-                        console.error(`${COLORS.RED}[ERROR] Failed to write to log file: ${err.message}${COLORS.RESET}`);
-                    }
-                });
-
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ status: "success" }));
-            } catch (err) {
-                console.error(`${COLORS.RED}[${new Date().toISOString()}] [ERROR] Failed to parse log payload: ${err.message}${COLORS.RESET}`);
-                res.writeHead(400, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ status: "error", message: "Invalid JSON log payload" }));
+            if (!token || token !== DEBUG_TOKEN) {
+                res.writeHead(401, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: "Unauthorized: Invalid or missing X-Debug-Token or token query parameter" }));
+                resolve();
+                return;
             }
+
+            const clientKey = req.socket.remoteAddress || 'unknown';
+            if (!checkRateLimit(clientKey)) {
+                res.writeHead(429, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: "Too Many Requests: Rate limit exceeded (max 120 per 10s)" }));
+                resolve();
+                return;
+            }
+
+            const MAX_PAYLOAD_SIZE = 1048576; // 1MB
+            let bodyLength = 0;
+            let body = '';
+            let sizeExceeded = false;
+
+            req.on('data', chunk => {
+                bodyLength += chunk.length;
+                if (bodyLength > MAX_PAYLOAD_SIZE) {
+                    sizeExceeded = true;
+                    res.writeHead(413, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: "Payload Too Large: Maximum allowed size is 1MB" }));
+                    resolve();
+                    return;
+                }
+                body += chunk.toString();
+            });
+
+            req.on('end', async () => {
+                if (sizeExceeded) {
+                    resolve();
+                    return;
+                }
+                try {
+                    const envelope = JSON.parse(body);
+                    const validationError = validateEnvelope(envelope);
+                    if (validationError) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: `Schema Validation Failed: ${validationError}` }));
+                        resolve();
+                        return;
+                    }
+
+                    const deviceId = envelope.deviceId;
+                    const sessionId = envelope.sessionId;
+                    const logEntry = envelope.payload;
+
+                    const timestamp = envelope.wallClockTimestamp || new Date().toISOString();
+                    const level = (logEntry.level || 'INFO').toUpperCase();
+                    const category = (logEntry.category || 'EXECUTION').toUpperCase();
+                    const event = (logEntry.event || 'GENERIC').toUpperCase();
+                    const message = logEntry.message || '';
+                    const payload = logEntry.payload || null;
+                    const stack = logEntry.stack ? `\nStack: ${logEntry.stack}` : '';
+
+                    // Format & Colorize for stdout
+                    const levelColor = getColorForLevel(level);
+                    const catColor = getColorForCategory(category);
+                    const payloadStr = payload ? ` | Payload: ${JSON.stringify(payload)}` : '';
+                    const formattedStdout = `[${timestamp}] [${levelColor}${level}${COLORS.RESET}] [${catColor}${category}:${event}${COLORS.RESET}] ${message}${payloadStr}${stack}`;
+                    console.log(formattedStdout);
+
+                    const fileEntry = {
+                        schemaVersion: envelope.schemaVersion,
+                        sessionId,
+                        deviceId,
+                        sequenceNumber: envelope.sequenceNumber,
+                        monotonicTimestamp: envelope.monotonicTimestamp,
+                        wallClockTimestamp: timestamp,
+                        messageType: envelope.messageType,
+                        timestamp,
+                        level,
+                        category,
+                        event,
+                        message,
+                        payload,
+                        stack: logEntry.stack || null
+                    };
+
+                    const activeLogsDir = getLogsDir();
+                    const deviceSessionDir = path.join(activeLogsDir, deviceId, sessionId);
+                    if (!fs.existsSync(deviceSessionDir)) {
+                        fs.mkdirSync(deviceSessionDir, { recursive: true });
+                    }
+                    const namespacedLogFile = path.join(deviceSessionDir, 'device-stream.log');
+                    await new Promise((resolveFile) => {
+                        fs.appendFile(namespacedLogFile, JSON.stringify(fileEntry) + '\n', 'utf8', (err) => {
+                            if (err) {
+                                console.error(`${COLORS.RED}[ERROR] Failed to write namespaced log file: ${err.message}${COLORS.RESET}`);
+                            }
+                            resolveFile();
+                        });
+                    });
+
+                    const globalLogFile = path.join(activeLogsDir, 'device-stream.log');
+                    fs.appendFile(globalLogFile, JSON.stringify(fileEntry) + '\n', 'utf8', () => {});
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ status: "success" }));
+                    resolve();
+                } catch (err) {
+                    console.error(`${COLORS.RED}[${new Date().toISOString()}] [ERROR] Failed to parse log payload: ${err.message}${COLORS.RESET}`);
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ status: "error", message: "Invalid JSON log payload" }));
+                    resolve();
+                }
+            });
         });
-        return;
     }
 
     // 404 handler
@@ -1879,8 +2042,18 @@ function startServer(port, retryCount = 0) {
 }
 
 // Initialize
-const initialPort = parseInt(process.env.PORT, 10) || DEFAULT_PORT;
-startServer(initialPort, 0);
+if (require.main === module) {
+    const initialPort = parseInt(process.env.PORT, 10) || DEFAULT_PORT;
+    startServer(initialPort, 0);
+}
+
+module.exports = {
+    handleRequest,
+    startServer,
+    DEBUG_TOKEN,
+    setTestLogsDir,
+    validateEnvelope
+};
 
 function shutdown(signal) {
     console.log(`\n${COLORS.YELLOW}[Shutdown] Received ${signal}. Flushing logs and shutting down server...${COLORS.RESET}`);

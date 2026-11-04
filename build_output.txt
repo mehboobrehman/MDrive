@@ -1,0 +1,105 @@
+> Task :app:generateVersionJson
+> Task :app:preBuild
+> Task :app:preDebugBuild
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:checkKotlinGradlePluginConfigurationErrors
+> Task :app:generateDebugBuildConfig
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:kspDebugKotlin UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:mergeDebugShaders UP-TO-DATE
+> Task :app:compileDebugShaders NO-SOURCE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :app:mergeDebugAssets
+> Task :app:desugarDebugFileDependencies UP-TO-DATE
+> Task :app:compressDebugAssets
+> Task :app:checkDebugDuplicateClasses UP-TO-DATE
+> Task :app:mergeDebugStartupProfile UP-TO-DATE
+> Task :app:mergeExtDexDebug UP-TO-DATE
+> Task :app:mergeLibDexDebug UP-TO-DATE
+> Task :app:mergeDebugJniLibFolders UP-TO-DATE
+> Task :app:mergeDebugNativeLibs NO-SOURCE
+> Task :app:stripDebugDebugSymbols NO-SOURCE
+> Task :app:validateSigningDebug UP-TO-DATE
+> Task :app:writeDebugAppMetadata UP-TO-DATE
+> Task :app:writeDebugSigningConfigVersions UP-TO-DATE
+> Task :app:compileDebugKotlin
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/model/FileExplorerModels.kt:7:109 Unresolved reference: CloudProviderType
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/screens/FileExplorerScreen.kt:36:16 Unresolved reference: FileExplorerViewModel
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/screens/FileExplorerScreen.kt:45:40 Cannot infer a type for this parameter. Please specify it explicitly.
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/screens/FileExplorerScreen.kt:46:31 Overload resolution ambiguity: 
+public final suspend fun showSnackbar(visuals: SnackbarVisuals): SnackbarResult defined in androidx.compose.material3.SnackbarHostState
+public final suspend fun showSnackbar(message: String, actionLabel: String? = ..., withDismissAction: Boolean = ..., duration: SnackbarDuration = ...): SnackbarResult defined in androidx.compose.material3.SnackbarHostState
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/screens/FileExplorerScreen.kt:125:64 Unresolved reference: it
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/screens/FileExplorerScreen.kt:126:37 @Composable invocations can only happen from the context of a @Composable function
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/screens/FileExplorerScreen.kt:127:37 @Composable invocations can only happen from the context of a @Composable function
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/screens/FileExplorerScreen.kt:130:29 @Composable invocations can only happen from the context of a @Composable function
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/screens/FileExplorerScreen.kt:166:82 Unresolved reference: it
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/screens/FileExplorerScreen.kt:166:125 Unresolved reference: it
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/screens/FileExplorerScreen.kt:174:79 Unresolved reference: it
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/screens/FileExplorerScreen.kt:174:113 Unresolved reference: it
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/screens/FileExplorerScreen.kt:186:29 'when' expression must be exhaustive, add necessary 'else' branch
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/screens/FileExplorerScreen.kt:186:35 Unresolved reference: it
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/screens/FileExplorerScreen.kt:187:64 Unresolved reference: it
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/screens/FileExplorerScreen.kt:188:62 Unresolved reference: it
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/screens/FileExplorerScreen.kt:221:29 Unresolved reference: it
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/screens/FileExplorerScreen.kt:221:63 Unresolved reference: it
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/screens/FileExplorerScreen.kt:222:29 Unresolved reference: it
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/screens/FileExplorerScreen.kt:246:25 Unresolved reference: VirtualFileItem
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/screens/FileExplorerScreen.kt:247:23 Unresolved reference: VirtualFileItem
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/screens/FileExplorerScreen.kt:345:39 Expected 2 parameters of types CloudFile, CloudProviderType
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/screens/FileExplorerScreen.kt:345:39 Type mismatch: inferred type is () -> Unit but (CloudFile, CloudProviderType) -> Unit was expected
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/screens/FileExplorerScreen.kt:400:104 Function invocation 'size(...)' expected
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/screens/FileExplorerScreen.kt:400:104 Unresolved reference. None of the following candidates is applicable because of receiver type mismatch: 
+public fun Modifier.size(size: Dp): Modifier defined in androidx.compose.foundation.layout
+public fun Modifier.size(width: Dp, height: Dp): Modifier defined in androidx.compose.foundation.layout
+public fun Modifier.size(size: DpSize): Modifier defined in androidx.compose.foundation.layout
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/screens/FileExplorerScreen.kt:416:15 Unresolved reference: VirtualFileItem
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/viewmodel/FileExplorerViewModel.kt:41:29 Unresolved reference: ExplorerItem
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/viewmodel/FileExplorerViewModel.kt:87:29 Unresolved reference: ExplorerItem
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/viewmodel/FileExplorerViewModel.kt:103:29 Unresolved reference: ExplorerItem
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/viewmodel/FileExplorerViewModel.kt:118:56 Unresolved reference: ExplorerItem
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/viewmodel/FileExplorerViewModel.kt:119:57 Unresolved reference: getAllAccounts
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/viewmodel/FileExplorerViewModel.kt:121:40 Overload resolution ambiguity: 
+public inline fun <T> Iterable<TypeVariable(T)>.forEach(action: (TypeVariable(T)) -> Unit): Unit defined in kotlin.collections
+public inline fun <K, V> Map<out TypeVariable(K), TypeVariable(V)>.forEach(action: (Map.Entry<TypeVariable(K), TypeVariable(V)>) -> Unit): Unit defined in kotlin.collections
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/viewmodel/FileExplorerViewModel.kt:121:50 Cannot infer a type for this parameter. Please specify it explicitly.
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/viewmodel/FileExplorerViewModel.kt:125:58 Suspension functions can be called only within coroutine body
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/viewmodel/FileExplorerViewModel.kt:126:67 Unresolved reference: ExplorerItem
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/viewmodel/FileExplorerViewModel.kt:139:29 'when' expression must be exhaustive, add necessary 'else' branch
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/viewmodel/FileExplorerViewModel.kt:139:35 Unresolved reference: it
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/viewmodel/FileExplorerViewModel.kt:140:36 Unresolved reference: ExplorerItem
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/viewmodel/FileExplorerViewModel.kt:140:64 Unresolved reference: it
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/viewmodel/FileExplorerViewModel.kt:141:36 Unresolved reference: ExplorerItem
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/viewmodel/FileExplorerViewModel.kt:141:62 Unresolved reference: it
+e: file:///C:/Users/mehboob.rehman/OneDrive%20-%20National%20Foods%20Limited/AI/autodesk/Autodeskprojects/mdrive/app/src/main/java/com/architect/driveaggregator/ui/viewmodel/FileExplorerViewModel.kt:473:36 Unresolved reference: ExplorerItem
+
+> Task :app:compileDebugKotlin FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileDebugKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 42s
+31 actionable tasks: 6 executed, 25 up-to-date

@@ -4,24 +4,7 @@
             "outputFile": "com.architect.driveaggregator.app-mergeDebugResources-68:/values-sv/values-sv.xml",
             "map": [
                 {
-                    "source": "C:\\Users\\mehboob.rehman\\.gradle\\caches\\transforms-4\\f456d8206868d78d44529731c9e62e03\\transformed\\core-1.12.0\\res\\values-sv\\values-sv.xml",
-                    "from": {
-                        "startLines": "2,3,4,5,6,7,8,9",
-                        "startColumns": "4,4,4,4,4,4,4,4",
-                        "startOffsets": "55,150,252,350,449,557,662,783",
-                        "endColumns": "94,101,97,98,107,104,120,100",
-                        "endOffsets": "145,247,345,444,552,657,778,879"
-                    },
-                    "to": {
-                        "startLines": "38,39,40,41,42,43,44,179",
-                        "startColumns": "4,4,4,4,4,4,4,4",
-                        "startOffsets": "3443,3538,3640,3738,3837,3945,4050,16514",
-                        "endColumns": "94,101,97,98,107,104,120,100",
-                        "endOffsets": "3533,3635,3733,3832,3940,4045,4166,16610"
-                    }
-                },
-                {
-                    "source": "C:\\Users\\mehboob.rehman\\.gradle\\caches\\transforms-4\\95950b6f0aa2c2e3047407006b567747\\transformed\\material3-release\\res\\values-sv\\values-sv.xml",
+                    "source": "C:\\Users\\mehboob.rehman\\.gradle\\caches\\transforms-4\\eb77cec798bcf12b1c43fa71b8c41a38\\transformed\\material3-release\\res\\values-sv\\values-sv.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57",
                         "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
@@ -38,7 +21,7 @@
                     }
                 },
                 {
-                    "source": "C:\\Users\\mehboob.rehman\\.gradle\\caches\\transforms-4\\417d639e2e4abd64ae6b021513400ad4\\transformed\\foundation-release\\res\\values-sv\\values-sv.xml",
+                    "source": "C:\\Users\\mehboob.rehman\\.gradle\\caches\\transforms-4\\0883ba6aad0c8ff5bad53de42f71e018\\transformed\\foundation-release\\res\\values-sv\\values-sv.xml",
                     "from": {
                         "startLines": "2,3",
                         "startColumns": "4,4",
@@ -55,7 +38,7 @@
                     }
                 },
                 {
-                    "source": "C:\\Users\\mehboob.rehman\\.gradle\\caches\\transforms-4\\39a7da3725b97e5d75856019e7320524\\transformed\\material-1.11.0\\res\\values-sv\\values-sv.xml",
+                    "source": "C:\\Users\\mehboob.rehman\\.gradle\\caches\\transforms-4\\c8a9ea7e076adbd8a089d9cd062b32ae\\transformed\\material-1.11.0\\res\\values-sv\\values-sv.xml",
                     "from": {
                         "startLines": "2,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73",
                         "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
@@ -74,7 +57,7 @@
                     }
                 },
                 {
-                    "source": "C:\\Users\\mehboob.rehman\\.gradle\\caches\\transforms-4\\0115ef9035b7c107aec0db293bd51b99\\transformed\\appcompat-1.6.1\\res\\values-sv\\values-sv.xml",
+                    "source": "C:\\Users\\mehboob.rehman\\.gradle\\caches\\transforms-4\\1dec3899c886aab41d749ac5bf4d64b8\\transformed\\appcompat-1.6.1\\res\\values-sv\\values-sv.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29",
                         "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
@@ -91,7 +74,24 @@
                     }
                 },
                 {
-                    "source": "C:\\Users\\mehboob.rehman\\.gradle\\caches\\transforms-4\\edd63e84463e14900e4a28dd49967781\\transformed\\ui-release\\res\\values-sv\\values-sv.xml",
+                    "source": "C:\\Users\\mehboob.rehman\\.gradle\\caches\\transforms-4\\a1955cdb0e59508cb5d99fa7936d7dbd\\transformed\\core-1.12.0\\res\\values-sv\\values-sv.xml",
+                    "from": {
+                        "startLines": "2,3,4,5,6,7,8,9",
+                        "startColumns": "4,4,4,4,4,4,4,4",
+                        "startOffsets": "55,150,252,350,449,557,662,783",
+                        "endColumns": "94,101,97,98,107,104,120,100",
+                        "endOffsets": "145,247,345,444,552,657,778,879"
+                    },
+                    "to": {
+                        "startLines": "38,39,40,41,42,43,44,179",
+                        "startColumns": "4,4,4,4,4,4,4,4",
+                        "startOffsets": "3443,3538,3640,3738,3837,3945,4050,16514",
+                        "endColumns": "94,101,97,98,107,104,120,100",
+                        "endOffsets": "3533,3635,3733,3832,3940,4045,4166,16610"
+                    }
+                },
+                {
+                    "source": "C:\\Users\\mehboob.rehman\\.gradle\\caches\\transforms-4\\dba793adf161155dd24930cc9db98ad2\\transformed\\ui-release\\res\\values-sv\\values-sv.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18",
                         "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",

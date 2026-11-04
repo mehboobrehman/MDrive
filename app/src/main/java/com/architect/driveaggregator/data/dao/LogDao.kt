@@ -32,4 +32,10 @@ interface LogDao {
 
     @Query("DELETE FROM logs WHERE isSynced = 1 AND timestamp < :olderThan")
     suspend fun deleteSyncedLogs(olderThan: Long)
+
+    @Query("SELECT COUNT(*) FROM logs")
+    suspend fun getLogCount(): Int
+
+    @Query("DELETE FROM logs WHERE id IN (SELECT id FROM logs WHERE isSynced = 0 ORDER BY timestamp ASC LIMIT :limit)")
+    suspend fun deleteOldestUnsynced(limit: Int)
 }

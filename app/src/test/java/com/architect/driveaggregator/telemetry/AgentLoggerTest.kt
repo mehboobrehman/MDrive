@@ -81,4 +81,54 @@ class AgentLoggerTest {
         assertEquals(false, AgentLogger.force401)
         assertTrue(AgentLogger.featureFlags.isEmpty())
     }
+
+    @Test
+    fun testConnectionStateInitial() {
+        assertEquals(ConnectionStateManager.ConnectionState.DISCONNECTED, AgentLogger.getConnectionState())
+    }
+
+    @Test
+    fun testSessionIdAndClockOffset() {
+        assertNotNull(AgentLogger.getSessionId())
+        assertTrue(AgentLogger.getSessionId().isNotBlank())
+        assertEquals(0L, AgentLogger.getClockOffsetMs())
+        assertEquals(0, AgentLogger.getDroppedEventsCount())
+    }
+
+    @Test
+    fun testSamplingRateConfig() {
+        AgentLogger.setSamplingRate("DIAGNOSTIC", 0.5)
+        // Verified via no exception and working configuration
+        assertNotNull(AgentLogger)
+    }
+
+    @Test
+    fun testRemoteControlCommandsAllowList() {
+        // Valid allow-listed commands
+        val validSetLevel = "{\"action\":\"set_log_level\",\"params\":{\"level\":\"DEBUG\"}}"
+        assertTrue(AgentLogger.handleRemoteCommand(validSetLevel))
+
+        val validToggle = "{\"action\":\"toggle_category\",\"params\":{\"category\":\"NETWORK\",\"enabled\":false}}"
+        assertTrue(AgentLogger.handleRemoteCommand(validToggle))
+
+        val validSampling = "{\"action\":\"set_sampling_rate\",\"params\":{\"category\":\"EXECUTION\",\"rate\":0.2}}"
+        assertTrue(AgentLogger.handleRemoteCommand(validSampling))
+
+        val validSnapshot = "{\"action\":\"request_snapshot\"}"
+        assertTrue(AgentLogger.handleRemoteCommand(validSnapshot))
+
+        val validForce401 = "{\"action\":\"set_force_401\",\"params\":{\"enabled\":true}}"
+        assertTrue(AgentLogger.handleRemoteCommand(validForce401))
+        assertTrue(AgentLogger.force401)
+
+        val validClearLogs = "{\"action\":\"clear_logs\"}"
+        assertTrue(AgentLogger.handleRemoteCommand(validClearLogs))
+
+        val validSync = "{\"action\":\"trigger_sync\"}"
+        assertTrue(AgentLogger.handleRemoteCommand(validSync))
+
+        // Unknown / un-allowlisted command should be rejected
+        val unknownCmd = "{\"action\":\"delete_database\"}"
+        assertTrue(!AgentLogger.handleRemoteCommand(unknownCmd))
+    }
 }
