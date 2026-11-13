@@ -355,7 +355,7 @@ tasks.register("generateVersionJson") {
         val jsonContent = """
         {
           "version": "$parsedVersionName",
-          "fullVersion": "v$parsedVersionName+build.$gitCommitHash",
+          "fullVersion": "v$parsedVersionName",
           "commitHash": "$gitCommitHash",
           "buildTimestamp": "$buildTimestamp",
           "environment": "$env",
