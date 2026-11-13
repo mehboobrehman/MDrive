@@ -441,17 +441,27 @@ object AgentLogger {
                 connectionStateManager.updateState(ConnectionState.CONNECTED)
             }
 
-            val resolvedIp = discoverServerIp(context)
-            if (resolvedIp != null) {
-                cachedServerUrl = "http://$resolvedIp:$DEFAULT_PORT"
-                prefs.edit().putString(PREF_KEY_SERVER_IP, resolvedIp).apply()
-                performHandshake(cachedServerUrl!!)
-                logEvent("INFO", "STARTUP", "DISCOVER_SUCCESS", "Discovered telemetry server at $cachedServerUrl")
-                connectionStateManager.updateState(ConnectionState.CONNECTED)
-            } else if (cachedServerUrl == null) {
-                cachedServerUrl = "http://10.0.2.2:$DEFAULT_PORT"
-                connectionStateManager.start()
-            }
+            val discoveryManager = TelemetryDiscoveryManager(
+                context,
+                { ip, port ->
+                    scope.launch {
+                        cachedServerUrl = "http://$ip:$port"
+                        prefs.edit().putString(PREF_KEY_SERVER_IP, ip).apply()
+                        performHandshake(cachedServerUrl!!)
+                        logEvent("INFO", "STARTUP", "DISCOVER_SUCCESS", "Discovered telemetry server at $cachedServerUrl")
+                        connectionStateManager.updateState(ConnectionState.CONNECTED)
+                        flushBuffer()
+                        syncBufferedLogs()
+                    }
+                },
+                {
+                    if (cachedServerUrl == null) {
+                        cachedServerUrl = "http://10.0.2.2:$DEFAULT_PORT"
+                        connectionStateManager.start()
+                    }
+                }
+            )
+            discoveryManager.startDiscovery()
 
             flushBuffer()
             syncBufferedLogs()

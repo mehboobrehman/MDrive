@@ -1,11 +1,11 @@
 {
   "major": 1,
   "minor": 0,
-  "patch": 24,
-  "versionName": "1.0.24",
-  "versionCode": 10024,
-  "version": "1.0.24",
+  "patch": 25,
+  "versionName": "1.0.25",
+  "versionCode": 10025,
+  "version": "1.0.25",
   "commitHash": "latest",
-  "fullVersion": "v1.0.24",
+  "fullVersion": "v1.0.25",
   "buildTimestamp": "2026-11-14T12:00:00Z"
 }

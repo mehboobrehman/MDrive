@@ -1,8 +1,8 @@
 {
-  "version": "1.0.24",
-  "fullVersion": "v1.0.24",
-  "commitHash": "068e990",
-  "buildTimestamp": "2026-11-13T19:30:50Z",
+  "version": "1.0.25",
+  "fullVersion": "v1.0.25",
+  "commitHash": "d070d8f",
+  "buildTimestamp": "2026-11-13T23:06:15Z",
   "environment": "development",
-  "versionCode": 10024
+  "versionCode": 10025
 }
