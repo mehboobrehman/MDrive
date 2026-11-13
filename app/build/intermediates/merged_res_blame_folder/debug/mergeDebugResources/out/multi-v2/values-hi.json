@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.architect.driveaggregator.app-mergeDebugResources-68:/values-hi/values-hi.xml",
+            "outputFile": "com.architect.driveaggregator.app-mergeDebugResources-75:/values-hi/values-hi.xml",
             "map": [
                 {
                     "source": "C:\\Users\\mehboob.rehman\\.gradle\\caches\\transforms-4\\dba793adf161155dd24930cc9db98ad2\\transformed\\ui-release\\res\\values-hi\\values-hi.xml",

@@ -2,72 +2,79 @@ com.architect.driveaggregator.app-foundation-release-0 C:\Users\mehboob.rehman\.
 com.architect.driveaggregator.app-lifecycle-livedata-core-2.7.0-1 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\0c6c3ebd650b31c45d49640dae432e01\transformed\lifecycle-livedata-core-2.7.0\res
 com.architect.driveaggregator.app-core-runtime-2.2.0-2 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\0d519e430a37d9632d257ab4b2fc380f\transformed\core-runtime-2.2.0\res
 com.architect.driveaggregator.app-emoji2-views-helper-1.3.0-3 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\0e989bc23df01cd5659dee4ab2db1f20\transformed\emoji2-views-helper-1.3.0\res
-com.architect.driveaggregator.app-lifecycle-viewmodel-ktx-2.7.0-4 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\119572130bb206f69e5b481f9e478587\transformed\lifecycle-viewmodel-ktx-2.7.0\res
-com.architect.driveaggregator.app-lifecycle-viewmodel-compose-2.7.0-5 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\16910d721bd4585b9b6a28fab45539bd\transformed\lifecycle-viewmodel-compose-2.7.0\res
-com.architect.driveaggregator.app-appcompat-1.6.1-6 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\1dec3899c886aab41d749ac5bf4d64b8\transformed\appcompat-1.6.1\res
-com.architect.driveaggregator.app-activity-compose-1.8.2-7 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\220ec163f990246445e80efcafb55df1\transformed\activity-compose-1.8.2\res
-com.architect.driveaggregator.app-savedstate-ktx-1.2.1-8 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\355195aa92cda91235139a79ae32834b\transformed\savedstate-ktx-1.2.1\res
-com.architect.driveaggregator.app-lifecycle-process-2.7.0-9 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\3cf855f6f01897646c8565781a694139\transformed\lifecycle-process-2.7.0\res
-com.architect.driveaggregator.app-fragment-1.5.1-10 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\4109738d38629885ac47c7adabec975b\transformed\fragment-1.5.1\res
-com.architect.driveaggregator.app-lifecycle-runtime-compose-2.7.0-11 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\4a126671ca2e0de787ba144cf43c8a42\transformed\lifecycle-runtime-compose-2.7.0\res
-com.architect.driveaggregator.app-lifecycle-livedata-core-ktx-2.7.0-12 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\4cfec83467ba7d22ea8d08951e61eea4\transformed\lifecycle-livedata-core-ktx-2.7.0\res
-com.architect.driveaggregator.app-ui-tooling-release-13 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\4d0bf8bda200461e098a0857c36e1477\transformed\ui-tooling-release\res
-com.architect.driveaggregator.app-animation-core-release-14 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\5478524a615d7b8adc4ca68e6089fd63\transformed\animation-core-release\res
-com.architect.driveaggregator.app-ui-tooling-data-release-15 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\58aeea7b37865134d325fdca8d464e2a\transformed\ui-tooling-data-release\res
-com.architect.driveaggregator.app-ui-geometry-release-16 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\6eb3d24f2e5c191b6ccc340074162ef1\transformed\ui-geometry-release\res
-com.architect.driveaggregator.app-ui-tooling-preview-release-17 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\6f35f099d847095fb65ab900a051726d\transformed\ui-tooling-preview-release\res
-com.architect.driveaggregator.app-animation-release-18 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\7691c97d5c770b3d0b067421d85b05ce\transformed\animation-release\res
-com.architect.driveaggregator.app-activity-1.8.2-19 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\7d143705e62aac1cb7ff144ecc66955b\transformed\activity-1.8.2\res
-com.architect.driveaggregator.app-lifecycle-runtime-2.7.0-20 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\7d34096fa70d4ff7525cc2701b4b535c\transformed\lifecycle-runtime-2.7.0\res
-com.architect.driveaggregator.app-ui-unit-release-21 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\7d5d61c05fad1bb635685001310c1be6\transformed\ui-unit-release\res
-com.architect.driveaggregator.app-constraintlayout-2.0.1-22 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\8714fa8245e17718ceb8d6c54a09a440\transformed\constraintlayout-2.0.1\res
-com.architect.driveaggregator.app-room-runtime-2.6.1-23 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\8aa09e61bea05bcb4aabcad8d63e0adc\transformed\room-runtime-2.6.1\res
-com.architect.driveaggregator.app-annotation-experimental-1.4.0-24 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\8b03eb9f32fb3751609083f809eee116\transformed\annotation-experimental-1.4.0\res
-com.architect.driveaggregator.app-hilt-work-1.2.0-25 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\8beebd0d606ffb25a267a00377a5426f\transformed\hilt-work-1.2.0\res
-com.architect.driveaggregator.app-work-runtime-2.9.0-26 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\90eb186fe891f7c1b20bfb0ec7df8753\transformed\work-runtime-2.9.0\res
-com.architect.driveaggregator.app-lifecycle-viewmodel-2.7.0-27 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\91659437e7b66bf519a61b2dba05c21f\transformed\lifecycle-viewmodel-2.7.0\res
-com.architect.driveaggregator.app-lifecycle-viewmodel-savedstate-2.7.0-28 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\91c937c196e6a898215d8695d042a1e6\transformed\lifecycle-viewmodel-savedstate-2.7.0\res
-com.architect.driveaggregator.app-drawerlayout-1.1.1-29 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\91da2dbc31fcd4aade534d3c597098ba\transformed\drawerlayout-1.1.1\res
-com.architect.driveaggregator.app-security-crypto-1.1.0-alpha06-30 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\9256766a60bed8cf1f820677f8a1900a\transformed\security-crypto-1.1.0-alpha06\res
-com.architect.driveaggregator.app-ui-graphics-release-31 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\97228b8d70fb723f603951eb4bd95e6d\transformed\ui-graphics-release\res
-com.architect.driveaggregator.app-coordinatorlayout-1.1.0-32 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\99d3d45e7665bfdb1cba6717d66cce32\transformed\coordinatorlayout-1.1.0\res
-com.architect.driveaggregator.app-ui-test-manifest-1.6.1-33 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\9e73d30ee9b72ce5b85c7ddceb6fc38e\transformed\ui-test-manifest-1.6.1\res
-com.architect.driveaggregator.app-material-icons-extended-release-34 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\9e8e1f985beb776a97bd20f73947ec17\transformed\material-icons-extended-release\res
-com.architect.driveaggregator.app-material-ripple-release-35 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\9fafcd3bfe7fc95a1a491f29c645e202\transformed\material-ripple-release\res
-com.architect.driveaggregator.app-core-1.12.0-36 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\a1955cdb0e59508cb5d99fa7936d7dbd\transformed\core-1.12.0\res
-com.architect.driveaggregator.app-customview-poolingcontainer-1.0.0-37 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\a4a72b9b28b6b1cc6066ed43a1cb6911\transformed\customview-poolingcontainer-1.0.0\res
-com.architect.driveaggregator.app-lifecycle-livedata-2.7.0-38 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\a6342d53f6eb6bbecdd39e09d92e4da1\transformed\lifecycle-livedata-2.7.0\res
-com.architect.driveaggregator.app-cardview-1.0.0-39 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\aaf2353d982f47ed5ee05a25bbc53a82\transformed\cardview-1.0.0\res
-com.architect.driveaggregator.app-runtime-release-40 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\ad09a75fcdcb6be0079df07dac8c8af1\transformed\runtime-release\res
-com.architect.driveaggregator.app-savedstate-1.2.1-41 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\aff8fd5b368653713a2c6bd211694a27\transformed\savedstate-1.2.1\res
-com.architect.driveaggregator.app-core-ktx-1.12.0-42 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\b564d4bf798186b1c2a3142a6df49344\transformed\core-ktx-1.12.0\res
-com.architect.driveaggregator.app-lifecycle-service-2.7.0-43 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\b764a29e291e8a4969d10679a4338e0e\transformed\lifecycle-service-2.7.0\res
-com.architect.driveaggregator.app-material-release-44 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\ba17695b337b0602f84c03a3b54daba1\transformed\material-release\res
-com.architect.driveaggregator.app-foundation-layout-release-45 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\ba51025e053f8bc0c2aa69f52e3e9817\transformed\foundation-layout-release\res
-com.architect.driveaggregator.app-runtime-saveable-release-46 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\bc4224e394e34759f486c5a84febf675\transformed\runtime-saveable-release\res
-com.architect.driveaggregator.app-ui-text-release-47 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\be1f4655fed4f955ee6f480b273e22e7\transformed\ui-text-release\res
-com.architect.driveaggregator.app-startup-runtime-1.1.1-48 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\c10e353541744f8c5413e57d171cd468\transformed\startup-runtime-1.1.1\res
-com.architect.driveaggregator.app-appcompat-resources-1.6.1-49 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\c1bbf8789e0587c67b6d664743090830\transformed\appcompat-resources-1.6.1\res
-com.architect.driveaggregator.app-profileinstaller-1.3.0-50 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\c5d452072264edbafa9c42e9bf3c9dd1\transformed\profileinstaller-1.3.0\res
-com.architect.driveaggregator.app-work-runtime-ktx-2.9.0-51 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\c7f5acb1ad9b606d18426798e1bfd57d\transformed\work-runtime-ktx-2.9.0\res
-com.architect.driveaggregator.app-material-1.11.0-52 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\c8a9ea7e076adbd8a089d9cd062b32ae\transformed\material-1.11.0\res
-com.architect.driveaggregator.app-activity-ktx-1.8.2-53 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\caa14e3403da36d36cde64de7c5b3691\transformed\activity-ktx-1.8.2\res
-com.architect.driveaggregator.app-sqlite-framework-2.4.0-54 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\cb35b7b59d8f0190421f1e5d3cf6eb71\transformed\sqlite-framework-2.4.0\res
-com.architect.driveaggregator.app-emoji2-1.3.0-55 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\ce586fe41cc21a5bd2d4fc4f0aff17e4\transformed\emoji2-1.3.0\res
-com.architect.driveaggregator.app-recyclerview-1.1.0-56 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\db773689e11c0a9a31bb9e57fea6c524\transformed\recyclerview-1.1.0\res
-com.architect.driveaggregator.app-ui-release-57 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\dba793adf161155dd24930cc9db98ad2\transformed\ui-release\res
-com.architect.driveaggregator.app-viewpager2-1.0.0-58 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\e19032617db4d14f32d98ea3f6eb4a58\transformed\viewpager2-1.0.0\res
-com.architect.driveaggregator.app-lifecycle-runtime-ktx-2.7.0-59 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\e568dd2801e019a6f8f36eadea9c43d6\transformed\lifecycle-runtime-ktx-2.7.0\res
-com.architect.driveaggregator.app-material3-release-60 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\eb77cec798bcf12b1c43fa71b8c41a38\transformed\material3-release\res
-com.architect.driveaggregator.app-transition-1.2.0-61 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\ed19ff1ead285397206b9674711dd8b0\transformed\transition-1.2.0\res
-com.architect.driveaggregator.app-ui-util-release-62 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\f3a6b24a58591e6149ce60e605d43996\transformed\ui-util-release\res
-com.architect.driveaggregator.app-sqlite-2.4.0-63 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\f4ab197e23ec0aa6e0558115f170cb02\transformed\sqlite-2.4.0\res
-com.architect.driveaggregator.app-room-ktx-2.6.1-64 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\f90a12c992579c1474376d2673d5172d\transformed\room-ktx-2.6.1\res
-com.architect.driveaggregator.app-material-icons-core-release-65 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\fc32b576bf66ef05f314b2da09ffb116\transformed\material-icons-core-release\res
-com.architect.driveaggregator.app-pngs-66 C:\Users\mehboob.rehman\OneDrive - National Foods Limited\AI\autodesk\Autodeskprojects\mdrive\app\build\generated\res\pngs\debug
-com.architect.driveaggregator.app-resValues-67 C:\Users\mehboob.rehman\OneDrive - National Foods Limited\AI\autodesk\Autodeskprojects\mdrive\app\build\generated\res\resValues\debug
-com.architect.driveaggregator.app-packageDebugResources-68 C:\Users\mehboob.rehman\OneDrive - National Foods Limited\AI\autodesk\Autodeskprojects\mdrive\app\build\intermediates\incremental\debug\packageDebugResources\merged.dir
-com.architect.driveaggregator.app-packageDebugResources-69 C:\Users\mehboob.rehman\OneDrive - National Foods Limited\AI\autodesk\Autodeskprojects\mdrive\app\build\intermediates\incremental\debug\packageDebugResources\stripped.dir
-com.architect.driveaggregator.app-debug-70 C:\Users\mehboob.rehman\OneDrive - National Foods Limited\AI\autodesk\Autodeskprojects\mdrive\app\build\intermediates\merged_res\debug\mergeDebugResources
-com.architect.driveaggregator.app-debug-71 C:\Users\mehboob.rehman\OneDrive - National Foods Limited\AI\autodesk\Autodeskprojects\mdrive\app\src\debug\res
-com.architect.driveaggregator.app-main-72 C:\Users\mehboob.rehman\OneDrive - National Foods Limited\AI\autodesk\Autodeskprojects\mdrive\app\src\main\res
+com.architect.driveaggregator.app-navigation-compose-2.5.1-4 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\116d9debd6fabb43974e4608319bd764\transformed\navigation-compose-2.5.1\res
+com.architect.driveaggregator.app-lifecycle-viewmodel-ktx-2.7.0-5 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\119572130bb206f69e5b481f9e478587\transformed\lifecycle-viewmodel-ktx-2.7.0\res
+com.architect.driveaggregator.app-lifecycle-viewmodel-compose-2.7.0-6 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\16910d721bd4585b9b6a28fab45539bd\transformed\lifecycle-viewmodel-compose-2.7.0\res
+com.architect.driveaggregator.app-appcompat-1.6.1-7 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\1dec3899c886aab41d749ac5bf4d64b8\transformed\appcompat-1.6.1\res
+com.architect.driveaggregator.app-activity-compose-1.8.2-8 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\220ec163f990246445e80efcafb55df1\transformed\activity-compose-1.8.2\res
+com.architect.driveaggregator.app-hilt-navigation-compose-1.2.0-9 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\233d5762ad28e04fbc537d71cae0d585\transformed\hilt-navigation-compose-1.2.0\res
+com.architect.driveaggregator.app-hilt-navigation-1.2.0-10 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\335b1fac61becfc40028ca0b55fde1bf\transformed\hilt-navigation-1.2.0\res
+com.architect.driveaggregator.app-savedstate-ktx-1.2.1-11 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\355195aa92cda91235139a79ae32834b\transformed\savedstate-ktx-1.2.1\res
+com.architect.driveaggregator.app-lifecycle-process-2.7.0-12 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\3cf855f6f01897646c8565781a694139\transformed\lifecycle-process-2.7.0\res
+com.architect.driveaggregator.app-fragment-1.5.1-13 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\4109738d38629885ac47c7adabec975b\transformed\fragment-1.5.1\res
+com.architect.driveaggregator.app-navigation-common-2.5.1-14 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\422e3012bbad3928c85a72613aeaf559\transformed\navigation-common-2.5.1\res
+com.architect.driveaggregator.app-lifecycle-runtime-compose-2.7.0-15 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\4a126671ca2e0de787ba144cf43c8a42\transformed\lifecycle-runtime-compose-2.7.0\res
+com.architect.driveaggregator.app-lifecycle-livedata-core-ktx-2.7.0-16 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\4cfec83467ba7d22ea8d08951e61eea4\transformed\lifecycle-livedata-core-ktx-2.7.0\res
+com.architect.driveaggregator.app-ui-tooling-release-17 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\4d0bf8bda200461e098a0857c36e1477\transformed\ui-tooling-release\res
+com.architect.driveaggregator.app-animation-core-release-18 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\5478524a615d7b8adc4ca68e6089fd63\transformed\animation-core-release\res
+com.architect.driveaggregator.app-ui-tooling-data-release-19 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\58aeea7b37865134d325fdca8d464e2a\transformed\ui-tooling-data-release\res
+com.architect.driveaggregator.app-navigation-runtime-ktx-2.5.1-20 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\5b685e03cc590fb9953b8b851e080ce2\transformed\navigation-runtime-ktx-2.5.1\res
+com.architect.driveaggregator.app-navigation-common-ktx-2.5.1-21 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\668ef3f05d57365e3b15d429be26dcfb\transformed\navigation-common-ktx-2.5.1\res
+com.architect.driveaggregator.app-ui-geometry-release-22 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\6eb3d24f2e5c191b6ccc340074162ef1\transformed\ui-geometry-release\res
+com.architect.driveaggregator.app-ui-tooling-preview-release-23 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\6f35f099d847095fb65ab900a051726d\transformed\ui-tooling-preview-release\res
+com.architect.driveaggregator.app-animation-release-24 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\7691c97d5c770b3d0b067421d85b05ce\transformed\animation-release\res
+com.architect.driveaggregator.app-activity-1.8.2-25 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\7d143705e62aac1cb7ff144ecc66955b\transformed\activity-1.8.2\res
+com.architect.driveaggregator.app-lifecycle-runtime-2.7.0-26 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\7d34096fa70d4ff7525cc2701b4b535c\transformed\lifecycle-runtime-2.7.0\res
+com.architect.driveaggregator.app-ui-unit-release-27 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\7d5d61c05fad1bb635685001310c1be6\transformed\ui-unit-release\res
+com.architect.driveaggregator.app-constraintlayout-2.0.1-28 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\8714fa8245e17718ceb8d6c54a09a440\transformed\constraintlayout-2.0.1\res
+com.architect.driveaggregator.app-room-runtime-2.6.1-29 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\8aa09e61bea05bcb4aabcad8d63e0adc\transformed\room-runtime-2.6.1\res
+com.architect.driveaggregator.app-annotation-experimental-1.4.0-30 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\8b03eb9f32fb3751609083f809eee116\transformed\annotation-experimental-1.4.0\res
+com.architect.driveaggregator.app-hilt-work-1.2.0-31 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\8beebd0d606ffb25a267a00377a5426f\transformed\hilt-work-1.2.0\res
+com.architect.driveaggregator.app-work-runtime-2.9.0-32 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\90eb186fe891f7c1b20bfb0ec7df8753\transformed\work-runtime-2.9.0\res
+com.architect.driveaggregator.app-lifecycle-viewmodel-2.7.0-33 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\91659437e7b66bf519a61b2dba05c21f\transformed\lifecycle-viewmodel-2.7.0\res
+com.architect.driveaggregator.app-lifecycle-viewmodel-savedstate-2.7.0-34 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\91c937c196e6a898215d8695d042a1e6\transformed\lifecycle-viewmodel-savedstate-2.7.0\res
+com.architect.driveaggregator.app-drawerlayout-1.1.1-35 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\91da2dbc31fcd4aade534d3c597098ba\transformed\drawerlayout-1.1.1\res
+com.architect.driveaggregator.app-security-crypto-1.1.0-alpha06-36 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\9256766a60bed8cf1f820677f8a1900a\transformed\security-crypto-1.1.0-alpha06\res
+com.architect.driveaggregator.app-ui-graphics-release-37 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\97228b8d70fb723f603951eb4bd95e6d\transformed\ui-graphics-release\res
+com.architect.driveaggregator.app-coordinatorlayout-1.1.0-38 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\99d3d45e7665bfdb1cba6717d66cce32\transformed\coordinatorlayout-1.1.0\res
+com.architect.driveaggregator.app-ui-test-manifest-1.6.1-39 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\9e73d30ee9b72ce5b85c7ddceb6fc38e\transformed\ui-test-manifest-1.6.1\res
+com.architect.driveaggregator.app-material-icons-extended-release-40 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\9e8e1f985beb776a97bd20f73947ec17\transformed\material-icons-extended-release\res
+com.architect.driveaggregator.app-material-ripple-release-41 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\9fafcd3bfe7fc95a1a491f29c645e202\transformed\material-ripple-release\res
+com.architect.driveaggregator.app-core-1.12.0-42 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\a1955cdb0e59508cb5d99fa7936d7dbd\transformed\core-1.12.0\res
+com.architect.driveaggregator.app-customview-poolingcontainer-1.0.0-43 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\a4a72b9b28b6b1cc6066ed43a1cb6911\transformed\customview-poolingcontainer-1.0.0\res
+com.architect.driveaggregator.app-lifecycle-livedata-2.7.0-44 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\a6342d53f6eb6bbecdd39e09d92e4da1\transformed\lifecycle-livedata-2.7.0\res
+com.architect.driveaggregator.app-cardview-1.0.0-45 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\aaf2353d982f47ed5ee05a25bbc53a82\transformed\cardview-1.0.0\res
+com.architect.driveaggregator.app-runtime-release-46 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\ad09a75fcdcb6be0079df07dac8c8af1\transformed\runtime-release\res
+com.architect.driveaggregator.app-savedstate-1.2.1-47 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\aff8fd5b368653713a2c6bd211694a27\transformed\savedstate-1.2.1\res
+com.architect.driveaggregator.app-core-ktx-1.12.0-48 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\b564d4bf798186b1c2a3142a6df49344\transformed\core-ktx-1.12.0\res
+com.architect.driveaggregator.app-lifecycle-service-2.7.0-49 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\b764a29e291e8a4969d10679a4338e0e\transformed\lifecycle-service-2.7.0\res
+com.architect.driveaggregator.app-material-release-50 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\ba17695b337b0602f84c03a3b54daba1\transformed\material-release\res
+com.architect.driveaggregator.app-foundation-layout-release-51 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\ba51025e053f8bc0c2aa69f52e3e9817\transformed\foundation-layout-release\res
+com.architect.driveaggregator.app-runtime-saveable-release-52 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\bc4224e394e34759f486c5a84febf675\transformed\runtime-saveable-release\res
+com.architect.driveaggregator.app-ui-text-release-53 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\be1f4655fed4f955ee6f480b273e22e7\transformed\ui-text-release\res
+com.architect.driveaggregator.app-startup-runtime-1.1.1-54 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\c10e353541744f8c5413e57d171cd468\transformed\startup-runtime-1.1.1\res
+com.architect.driveaggregator.app-appcompat-resources-1.6.1-55 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\c1bbf8789e0587c67b6d664743090830\transformed\appcompat-resources-1.6.1\res
+com.architect.driveaggregator.app-profileinstaller-1.3.0-56 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\c5d452072264edbafa9c42e9bf3c9dd1\transformed\profileinstaller-1.3.0\res
+com.architect.driveaggregator.app-work-runtime-ktx-2.9.0-57 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\c7f5acb1ad9b606d18426798e1bfd57d\transformed\work-runtime-ktx-2.9.0\res
+com.architect.driveaggregator.app-material-1.11.0-58 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\c8a9ea7e076adbd8a089d9cd062b32ae\transformed\material-1.11.0\res
+com.architect.driveaggregator.app-activity-ktx-1.8.2-59 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\caa14e3403da36d36cde64de7c5b3691\transformed\activity-ktx-1.8.2\res
+com.architect.driveaggregator.app-sqlite-framework-2.4.0-60 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\cb35b7b59d8f0190421f1e5d3cf6eb71\transformed\sqlite-framework-2.4.0\res
+com.architect.driveaggregator.app-emoji2-1.3.0-61 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\ce586fe41cc21a5bd2d4fc4f0aff17e4\transformed\emoji2-1.3.0\res
+com.architect.driveaggregator.app-recyclerview-1.1.0-62 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\db773689e11c0a9a31bb9e57fea6c524\transformed\recyclerview-1.1.0\res
+com.architect.driveaggregator.app-ui-release-63 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\dba793adf161155dd24930cc9db98ad2\transformed\ui-release\res
+com.architect.driveaggregator.app-viewpager2-1.0.0-64 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\e19032617db4d14f32d98ea3f6eb4a58\transformed\viewpager2-1.0.0\res
+com.architect.driveaggregator.app-navigation-runtime-2.5.1-65 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\e39a364b11bd96a73a11345cc8fb735e\transformed\navigation-runtime-2.5.1\res
+com.architect.driveaggregator.app-lifecycle-runtime-ktx-2.7.0-66 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\e568dd2801e019a6f8f36eadea9c43d6\transformed\lifecycle-runtime-ktx-2.7.0\res
+com.architect.driveaggregator.app-material3-release-67 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\eb77cec798bcf12b1c43fa71b8c41a38\transformed\material3-release\res
+com.architect.driveaggregator.app-transition-1.2.0-68 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\ed19ff1ead285397206b9674711dd8b0\transformed\transition-1.2.0\res
+com.architect.driveaggregator.app-ui-util-release-69 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\f3a6b24a58591e6149ce60e605d43996\transformed\ui-util-release\res
+com.architect.driveaggregator.app-sqlite-2.4.0-70 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\f4ab197e23ec0aa6e0558115f170cb02\transformed\sqlite-2.4.0\res
+com.architect.driveaggregator.app-room-ktx-2.6.1-71 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\f90a12c992579c1474376d2673d5172d\transformed\room-ktx-2.6.1\res
+com.architect.driveaggregator.app-material-icons-core-release-72 C:\Users\mehboob.rehman\.gradle\caches\transforms-4\fc32b576bf66ef05f314b2da09ffb116\transformed\material-icons-core-release\res
+com.architect.driveaggregator.app-pngs-73 C:\Users\mehboob.rehman\OneDrive - National Foods Limited\AI\autodesk\Autodeskprojects\mdrive\app\build\generated\res\pngs\debug
+com.architect.driveaggregator.app-resValues-74 C:\Users\mehboob.rehman\OneDrive - National Foods Limited\AI\autodesk\Autodeskprojects\mdrive\app\build\generated\res\resValues\debug
+com.architect.driveaggregator.app-packageDebugResources-75 C:\Users\mehboob.rehman\OneDrive - National Foods Limited\AI\autodesk\Autodeskprojects\mdrive\app\build\intermediates\incremental\debug\packageDebugResources\merged.dir
+com.architect.driveaggregator.app-packageDebugResources-76 C:\Users\mehboob.rehman\OneDrive - National Foods Limited\AI\autodesk\Autodeskprojects\mdrive\app\build\intermediates\incremental\debug\packageDebugResources\stripped.dir
+com.architect.driveaggregator.app-debug-77 C:\Users\mehboob.rehman\OneDrive - National Foods Limited\AI\autodesk\Autodeskprojects\mdrive\app\build\intermediates\merged_res\debug\mergeDebugResources
+com.architect.driveaggregator.app-debug-78 C:\Users\mehboob.rehman\OneDrive - National Foods Limited\AI\autodesk\Autodeskprojects\mdrive\app\src\debug\res
+com.architect.driveaggregator.app-main-79 C:\Users\mehboob.rehman\OneDrive - National Foods Limited\AI\autodesk\Autodeskprojects\mdrive\app\src\main\res

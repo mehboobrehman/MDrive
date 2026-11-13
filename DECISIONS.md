@@ -44,3 +44,10 @@ Root-caused invalid_client (401) to the placeholder client id compiled from loca
 Upgraded Room database from version 3 to 4, adding offline pinning, AI categories, duplicate hash tracking, sharing URLs, primary account session table, and smart recommendations table with robust migration support and unit testing.
 
 **Impact**: AppDatabase.kt, VirtualFileEntity.kt, PrimaryAccountSessionEntity.kt, SmartRecommendationEntity.kt, DAOs, Dagger DatabaseModule
+
+## Secure In-App Update Feature & Verification Pipeline
+**When**: 2026-11-13 14:34:16
+
+Implemented secure in-app update feature with GitHub REST API integration, strict SemVer comparison, OkHttp streaming download into cacheDir/updates with .part cleanup and atomic rename, SHA-256 Checksum verification, APK signing certificate verification against installed package, FileProvider installer delegation, WorkManager periodic checks, M3 Compose UI components, and comprehensive unit tests.
+
+**Impact**: app/src/main/java/com/architect/driveaggregator/update, AndroidManifest.xml, res/xml/file_paths.xml, unit tests
