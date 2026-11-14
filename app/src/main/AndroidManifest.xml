@@ -61,6 +61,11 @@
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
         <activity
+            android:name=".ui.settings.SettingsActivity"
+            android:label="Settings"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+
+        <activity
             android:name=".ui.LinkedAccountsActivity"
             android:label="Linked Accounts"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
