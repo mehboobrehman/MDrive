@@ -8,8 +8,12 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
     permissions:
       contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK
@@ -49,18 +53,19 @@ jobs:
             MDrive-v${VERSION}-debug.apk \
             MDrive-v${VERSION}-release.apk \
             SHA256SUMS
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Comment on commit
         run: |
           VERSION=$(grep -oP '"version":\s*"\K[^"]+' version.json)
-          gh api -X POST /repos/${{ github.repository }}/commits/${{ github.sha }}/comments \
-            -f body="### Release Summary
-            - **Version:** v${VERSION}
-            - **Build Status:** Success
-            - **Artifacts:**
-              - [MDrive-v${VERSION}-debug.apk](https://github.com/${{ github.repository }}/releases/download/v${VERSION}/MDrive-v${VERSION}-debug.apk)
-              - [MDrive-v${VERSION}-release.apk](https://github.com/${{ github.repository }}/releases/download/v${VERSION}/MDrive-v${VERSION}-release.apk)
-            - **Checksums:** [SHA256SUMS](https://github.com/${{ github.repository }}/releases/download/v${VERSION}/SHA256SUMS)"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BODY=$(cat <<-EOF
+          ### Release Summary
+          | Key | Value |
+          | :--- | :--- |
+          | **Version** | v${VERSION} |
+          | **Build Status** | Success |
+          | **Commit Hash** | ${GITHUB_SHA::7} |
+          | **Artifacts** | [Debug APK](https://github.com/${{ github.repository }}/releases/download/v${VERSION}/MDrive-v${VERSION}-debug.apk)<br>[Release APK](https://github.com/${{ github.repository }}/releases/download/v${VERSION}/MDrive-v${VERSION}-release.apk) |
+          | **Checksums** | [SHA256SUMS](https://github.com/${{ github.repository }}/releases/download/v${VERSION}/SHA256SUMS) |
+          EOF
+          )
+          gh api -X POST /repos/${{ github.repository }}/commits/${{ github.sha }}/comments -f body="$BODY"
+
