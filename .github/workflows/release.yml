@@ -1,0 +1,58 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+      - name: Bump version
+        run: node scripts/bump-version.js
+      - name: Build
+        run: ./gradlew clean assembleDebug assembleRelease
+      - name: Rename artifacts
+        run: |
+          VERSION=$(grep -oP '"version":\s*"\K[^"]+' version.json)
+          mv app/build/outputs/apk/debug/mdrive.apk MDrive-v${VERSION}-debug.apk
+          mv app/build/outputs/apk/release/mdrive.apk MDrive-v${VERSION}-release.apk
+      - name: Calculate checksums
+        run: |
+          sha256sum MDrive-v*.apk > SHA256SUMS
+      - name: Create Release
+        run: |
+          VERSION=$(grep -oP '"version":\s*"\K[^"]+' version.json)
+          gh release create v${VERSION} \
+            --title "Release v${VERSION}" \
+            --notes-file CHANGELOG.md \
+            MDrive-v${VERSION}-debug.apk \
+            MDrive-v${VERSION}-release.apk \
+            SHA256SUMS
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Comment on commit
+        run: |
+          VERSION=$(grep -oP '"version":\s*"\K[^"]+' version.json)
+          gh api -X POST /repos/${{ github.repository }}/commits/${{ github.sha }}/comments \
+            -f body="### Release Summary
+            - **Version:** v${VERSION}
+            - **Build Status:** Success
+            - **Artifacts:**
+              - [MDrive-v${VERSION}-debug.apk](https://github.com/${{ github.repository }}/releases/download/v${VERSION}/MDrive-v${VERSION}-debug.apk)
+              - [MDrive-v${VERSION}-release.apk](https://github.com/${{ github.repository }}/releases/download/v${VERSION}/MDrive-v${VERSION}-release.apk)
+            - **Checksums:** [SHA256SUMS](https://github.com/${{ github.repository }}/releases/download/v${VERSION}/SHA256SUMS)"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

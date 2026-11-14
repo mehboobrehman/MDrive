@@ -21,6 +21,7 @@ import com.architect.driveaggregator.upload.GoogleResumableUploadManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
 import javax.inject.Inject
+import android.annotation.SuppressLint
 
 /**
  * ForegroundSyncService acts as the core background orchestrator for MDrive backups.
@@ -200,9 +201,18 @@ class ForegroundSyncService : Service() {
             .build()
     }
 
+    @SuppressLint("NotificationPermission")
     private fun updateNotification(title: String, content: String) {
         val notification = createNotification(title, content)
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                Log.w(TAG, "Missing POST_NOTIFICATIONS permission, skipping notification update")
+                return
+            }
+        }
+        
         notificationManager.notify(NOTIFICATION_ID, notification)
     }
 }
