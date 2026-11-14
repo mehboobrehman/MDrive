@@ -7,12 +7,12 @@ public final class BuildConfig {
   public static final boolean DEBUG = Boolean.parseBoolean("true");
   public static final String APPLICATION_ID = "com.architect.driveaggregator";
   public static final String BUILD_TYPE = "debug";
-  public static final int VERSION_CODE = 10025;
-  public static final String VERSION_NAME = "1.0.25";
+  public static final int VERSION_CODE = 10100;
+  public static final String VERSION_NAME = "1.1.0";
   // Field from default config.
-  public static final String APP_VERSION = "1.0.25";
+  public static final String APP_VERSION = "1.1.0";
   // Field from default config.
-  public static final String BUILD_TIMESTAMP = "2026-11-14T04:34:24Z";
+  public static final String BUILD_TIMESTAMP = "2026-11-14T06:12:45Z";
   // Field from default config.
   public static final long CHUNK_SIZE_BYTES = 8388608L;
   // Field from default config.
@@ -20,13 +20,13 @@ public final class BuildConfig {
   // Field from build type: debug
   public static final String ENVIRONMENT = "development";
   // Field from default config.
-  public static final String FULL_VERSION_STRING = "v1.0.25+build.3536e54";
+  public static final String FULL_VERSION_STRING = "v1.1.0+build.1b810aa";
   // Field from default config.
-  public static final String GIT_COMMIT_HASH = "3536e54";
+  public static final String GIT_COMMIT_HASH = "1b810aa";
   // Field from default config.
   public static final String GOOGLE_CLIENT_ID = "1012190863574-c4sr89dhefjl5a1h8gfq9blpgeteiv1m.apps.googleusercontent.com";
   // Field from default config.
   public static final int MAX_PARALLEL_UPLOADS = 2;
   // Field from default config.
-  public static final String SEMVER_VERSION = "1.0.25";
+  public static final String SEMVER_VERSION = "1.1.0";
 }

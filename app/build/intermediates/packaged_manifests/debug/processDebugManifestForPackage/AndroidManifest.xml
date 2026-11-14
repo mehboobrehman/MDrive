@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.architect.driveaggregator"
-    android:versionCode="10025"
-    android:versionName="1.0.25" >
+    android:versionCode="10100"
+    android:versionName="1.1.0" >
 
     <uses-sdk
         android:minSdkVersion="26"
@@ -89,6 +89,10 @@
         <activity
             android:name="com.architect.driveaggregator.ui.FileExplorerActivity"
             android:label="File Explorer"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+        <activity
+            android:name="com.architect.driveaggregator.ui.settings.SettingsActivity"
+            android:label="Settings"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
         <activity
             android:name="com.architect.driveaggregator.ui.LinkedAccountsActivity"
