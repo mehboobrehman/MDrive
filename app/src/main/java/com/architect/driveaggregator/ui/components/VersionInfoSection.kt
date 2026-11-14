@@ -131,10 +131,20 @@ fun VersionInfoSection(
                     )
                 }
 
-                TextButton(
-                    onClick = { viewModel.setShowAboutDialog(true) }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("About MDrive", fontWeight = FontWeight.Bold)
+                    TextButton(
+                        onClick = { viewModel.checkForUpdates(silent = false) }
+                    ) {
+                        Text("Check for Updates")
+                    }
+                    TextButton(
+                        onClick = { viewModel.setShowAboutDialog(true) }
+                    ) {
+                        Text("About MDrive", fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
