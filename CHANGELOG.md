@@ -1,4 +1,5 @@
-# Changelog
+# Changelog## [1.1.0] - 2026-11-14
+- Automated version bump (minor release).
 
 ## [1.0.21] - 2026-11-04
 - Release v1.0.21 with enhanced Google Drive storage aggregation and build artifacts.

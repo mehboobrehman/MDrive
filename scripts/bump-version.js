@@ -2,6 +2,15 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
+let parseCommit;
+try {
+    parseCommit = require('conventional-commits-parser').sync;
+} catch (e) {
+    console.log('conventional-commits-parser not found, installing...');
+    execSync('npm install conventional-commits-parser');
+    parseCommit = require('conventional-commits-parser').sync;
+}
+
 function getGitLog(maxCount = 20) {
     try {
         const output = execSync(`git log -n ${maxCount} --pretty=format:%s`, { encoding: 'utf8' });
@@ -14,11 +23,12 @@ function getGitLog(maxCount = 20) {
 function determineBumpType(commits) {
     let bump = 'patch';
     for (const commit of commits) {
-        // e.g. "feat!: breaking change" or "BREAKING CHANGE:" or "feat:"
-        if (commit.includes('!') || commit.toLowerCase().includes('breaking change')) {
+        const parsed = parseCommit(commit);
+        // Check for BREAKING CHANGE in notes OR '!' in header
+        if (parsed.notes.some(n => n.title === 'BREAKING CHANGE') || commit.includes('!:')) {
             return 'major';
         }
-        if (commit.startsWith('feat') || commit.startsWith('feature')) {
+        if (parsed.type === 'feat') {
             bump = 'minor';
         }
     }

@@ -1,0 +1,8 @@
+{
+  "name": "mdrive",
+  "version": "1.0.0",
+  "description": "MDrive build scripts",
+  "devDependencies": {
+    "conventional-commits-parser": "^5.0.0"
+  }
+}
