@@ -1,4 +1,11 @@
-# Changelog## [1.1.0] - 2026-11-14
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+## [1.0.25] - 2026-11-15
+- Release v1.0.25: Secure Updates, Telemetry Discovery & CI/CD Pipeline Upgrade.
+
+## [1.1.0] - 2026-11-14
 - Automated version bump (minor release).
 
 ## [1.0.21] - 2026-11-04
@@ -36,8 +43,6 @@
 
 ## [1.0.2] - 2026-09-23
 - Automated version bump (patch release).
-
-All notable changes to this project will be documented in this file.
 
 ## [1.0.1] - 2026-09-23
 - Automated version bump (patch release).
