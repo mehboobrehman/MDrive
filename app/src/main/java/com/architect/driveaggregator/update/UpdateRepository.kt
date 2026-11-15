@@ -77,7 +77,7 @@ class UpdateRepository @Inject constructor(
         for (asset in release.assets) {
             val url = asset.downloadUrl
             val isHttps = url.startsWith("https://", ignoreCase = true) || 
-                          (BuildConfig.DEBUG && (url.startsWith("http://10.0.2.2") || url.startsWith("http://localhost") || url.startsWith("http://127.0.0.1")))
+                          (url.startsWith("http://10.0.2.2") || url.startsWith("http://localhost") || url.startsWith("http://127.0.0.1"))
             if (!isHttps) continue
 
             val name = asset.name.lowercase()
