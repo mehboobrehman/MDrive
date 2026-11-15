@@ -1,2 +1,6 @@
-deb9684a72d0e70f3d79c73a8f8d7ad770336b4366c811d7ba87921501daf787 *app/build/outputs/apk/debug/mdrive.apk
-faf096eec6ecccfa5f3717497f6318ebb14e8e51798d4b63e7c02eafae5daca8 *app/build/outputs/apk/release/mdrive.apk
+6034a3f1948164468ed6cd39cc51f640222ac4495553c90f881edbd598e06fc8 *MDrive-v1.0.23-debug.apk
+477e914491469dc1801d7bd250d460081440dc75c6a0211c037d24d94626a4fd *MDrive-v1.0.23-release.apk
+ac2e88485f9a4b8994fd73ebf9d2ef0a348ed52cc408ab6ead5746dbb3522593 *MDrive-v1.0.24-debug.apk
+f2c69308f844071407681d22dcc072c6c828d8cbe3e7a828063959bc3a16c557 *MDrive-v1.0.24-release.apk
+01e8a6e5c6b24f08f5c0ab611dd84872eeb793415392bbcd25c283395621bb4b *MDrive-v1.0.25-debug.apk
+3f2c6b4d05c486e6222a213f6ffffd0d2f5ec9fe99532b67cb1bbffbaaf76b43 *MDrive-v1.0.25-release.apk
