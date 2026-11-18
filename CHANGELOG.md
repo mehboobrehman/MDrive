@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.26] - 2026-11-17
+- Release v1.0.26: Fresh release with updated versioning, build artifacts, and release automation.
+
 ## [1.0.25] - 2026-11-15
 - Release v1.0.25: Secure Updates, Telemetry Discovery & CI/CD Pipeline Upgrade.
 

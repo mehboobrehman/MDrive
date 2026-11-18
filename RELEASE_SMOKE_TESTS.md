@@ -1,11 +1,11 @@
-# Release Smoke Testing Protocol - v1.0.25
+# Release Smoke Testing Protocol - v1.0.26
 
 After a successful deployment, the following steps must be performed to ensure the release is stable in production.
 
 ## 1. Version Verification
 - [ ] Open the MDrive application.
 - [ ] Navigate to **Settings** -> **About**.
-- [ ] Verify that the version number is displayed as `1.0.25`.
+- [ ] Verify that the version number is displayed as `1.0.26`.
 - [ ] Verify that the build date matches the release date.
 
 ## 2. Authentication & Account Management
