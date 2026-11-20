@@ -138,7 +138,7 @@ class SyncWorker @AssistedInject constructor(
         }
 
         val duration = System.currentTimeMillis() - startTime
-        val level = if (result is Result.Success) "INFO" else "ERROR"
+        val level = if (result::class.simpleName?.contains("Success") == true) "INFO" else "ERROR"
         AgentLogger.logEvent(
             level = level,
             category = "EXECUTION",
