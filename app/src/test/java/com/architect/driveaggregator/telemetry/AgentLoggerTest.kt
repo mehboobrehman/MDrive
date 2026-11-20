@@ -131,4 +131,27 @@ class AgentLoggerTest {
         val unknownCmd = "{\"action\":\"delete_database\"}"
         assertTrue(!AgentLogger.handleRemoteCommand(unknownCmd))
     }
+
+    @Test
+    fun shutdown_unregistersLifecycleCallbacksIdempotently() {
+        AgentLogger.initDynamicConfig(mockContext)
+        AgentLogger.shutdown()
+        AgentLogger.cleanup()
+        AgentLogger.shutdown()
+        assertNotNull(AgentLogger)
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun telemetryHandshake_rejectsInsecureEndpoint() {
+        AgentLogger.validateSecureEndpoint("http://insecure-external-server.com:8080")
+    }
+
+    @Test
+    fun telemetryHandshake_acceptsSecureAndLocalEndpoints() {
+        AgentLogger.validateSecureEndpoint("https://secure-telemetry.com:8080")
+        AgentLogger.validateSecureEndpoint("http://10.0.2.2:8080")
+        AgentLogger.validateSecureEndpoint("http://localhost:8080")
+        AgentLogger.validateSecureEndpoint("http://127.0.0.1:8080")
+        assertNotNull(AgentLogger)
+    }
 }

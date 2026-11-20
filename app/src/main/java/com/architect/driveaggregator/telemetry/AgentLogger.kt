@@ -260,6 +260,13 @@ object AgentLogger {
     }
 
     private suspend fun performHandshake(baseUrl: String) {
+        try {
+            validateSecureEndpoint(baseUrl)
+        } catch (e: Exception) {
+            logEvent("ERROR", "SECURITY", "HANDSHAKE_SECURITY_ERROR", "Handshake rejected due to endpoint security policy: ${e.message}")
+            return
+        }
+
         val ctx = appContext ?: return
         val deviceId = getDeviceId(ctx)
         val handshakeJson = JSONObject().apply {
@@ -359,8 +366,57 @@ object AgentLogger {
         }
     }
 
+    fun validateSecureEndpoint(urlStr: String) {
+        val isSecure = urlStr.startsWith("https://", ignoreCase = true) ||
+                      urlStr.startsWith("http://10.0.2.2", ignoreCase = true) ||
+                      urlStr.startsWith("http://localhost", ignoreCase = true) ||
+                      urlStr.startsWith("http://127.0.0.1", ignoreCase = true) ||
+                      (BuildConfig.DEBUG && (urlStr.startsWith("http://192.168.") || urlStr.startsWith("http://10.") || urlStr.startsWith("http://172.")))
+        if (!isSecure) {
+            throw IllegalArgumentException("Insecure telemetry endpoint: $urlStr. Telemetry handshake requires HTTPS or secure local endpoint.")
+        }
+    }
+
+    private var activityLifecycleCallbacks: TelemetryActivityLifecycleCallbacks? = null
+
+    fun shutdown() {
+        cleanup()
+    }
+
+    fun cleanup() {
+        try {
+            val app = appContext as? android.app.Application
+            activityLifecycleCallbacks?.let { callbacks ->
+                app?.unregisterActivityLifecycleCallbacks(callbacks)
+            }
+        } catch (_: Exception) {}
+        activityLifecycleCallbacks = null
+
+        cachedServerUrl = null
+        appContext = null
+        logDao = null
+        logQueue.clear()
+        connectionStateManager.reset()
+        droppedEventsCount = 0
+        sequenceNumber = 0L
+        clockOffsetMs = 0L
+        categorySamplingRates.clear()
+        scope.coroutineContext.cancelChildren()
+    }
+
     fun setServerAddress(ip: String, port: Int = DEFAULT_PORT, context: Context? = null) {
-        cachedServerUrl = "http://$ip:$port"
+        val url = if (ip.startsWith("http://") || ip.startsWith("https://")) {
+            if (ip.endsWith(":$port")) ip else "$ip:$port"
+        } else {
+            val protocol = if (ip == "10.0.2.2" || ip == "localhost" || ip == "127.0.0.1" || (BuildConfig.DEBUG && (ip.startsWith("192.168.") || ip.startsWith("10.") || ip.startsWith("172.")))) {
+                "http://"
+            } else {
+                "https://"
+            }
+            "$protocol$ip:$port"
+        }
+        validateSecureEndpoint(url)
+        cachedServerUrl = url
         val targetContext = context?.applicationContext ?: appContext
         targetContext?.let { ctx ->
             appContext = ctx
@@ -376,7 +432,7 @@ object AgentLogger {
             syncBufferedLogs()
         }
         connectionStateManager.updateState(ConnectionState.CONNECTED)
-        logEvent("INFO", "STARTUP", "DISCOVER_SUCCESS", "Telemetry server set to http://$ip:$port")
+        logEvent("INFO", "STARTUP", "DISCOVER_SUCCESS", "Telemetry server set to $url")
     }
 
     fun getServerUrl(): String? = cachedServerUrl
@@ -402,16 +458,7 @@ object AgentLogger {
     fun isConfigured(): Boolean = cachedServerUrl != null
 
     fun resetForTesting() {
-        cachedServerUrl = null
-        appContext = null
-        logDao = null
-        logQueue.clear()
-        connectionStateManager.reset()
-        droppedEventsCount = 0
-        sequenceNumber = 0L
-        clockOffsetMs = 0L
-        categorySamplingRates.clear()
-        scope.coroutineContext.cancelChildren()
+        cleanup()
     }
 
     fun initDynamicConfig(context: Context) {
@@ -421,7 +468,12 @@ object AgentLogger {
         } catch (_: Exception) {}
 
         try {
-            (context.applicationContext as? android.app.Application)?.registerActivityLifecycleCallbacks(TelemetryActivityLifecycleCallbacks())
+            val app = context.applicationContext as? android.app.Application
+            if (app != null && activityLifecycleCallbacks == null) {
+                val callbacks = TelemetryActivityLifecycleCallbacks()
+                activityLifecycleCallbacks = callbacks
+                app.registerActivityLifecycleCallbacks(callbacks)
+            }
         } catch (_: Exception) {}
 
         if (!BuildConfig.DEBUG) return
@@ -434,30 +486,42 @@ object AgentLogger {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             val savedIp = prefs.getString(PREF_KEY_SERVER_IP, null)
             if (!savedIp.isNullOrBlank()) {
-                cachedServerUrl = "http://$savedIp:$DEFAULT_PORT"
-                performHandshake(cachedServerUrl!!)
-                flushBuffer()
-                syncBufferedLogs()
-                connectionStateManager.updateState(ConnectionState.CONNECTED)
+                val url = if (savedIp.startsWith("http://") || savedIp.startsWith("https://")) savedIp else "http://$savedIp:$DEFAULT_PORT"
+                try {
+                    validateSecureEndpoint(url)
+                    cachedServerUrl = url
+                    performHandshake(cachedServerUrl!!)
+                    flushBuffer()
+                    syncBufferedLogs()
+                    connectionStateManager.updateState(ConnectionState.CONNECTED)
+                } catch (_: Exception) {}
             }
 
             val discoveryManager = TelemetryDiscoveryManager(
                 context,
                 { ip, port ->
                     scope.launch {
-                        cachedServerUrl = "http://$ip:$port"
-                        prefs.edit().putString(PREF_KEY_SERVER_IP, ip).apply()
-                        performHandshake(cachedServerUrl!!)
-                        logEvent("INFO", "STARTUP", "DISCOVER_SUCCESS", "Discovered telemetry server at $cachedServerUrl")
-                        connectionStateManager.updateState(ConnectionState.CONNECTED)
-                        flushBuffer()
-                        syncBufferedLogs()
+                        val url = "http://$ip:$port"
+                        try {
+                            validateSecureEndpoint(url)
+                            cachedServerUrl = url
+                            prefs.edit().putString(PREF_KEY_SERVER_IP, ip).apply()
+                            performHandshake(cachedServerUrl!!)
+                            logEvent("INFO", "STARTUP", "DISCOVER_SUCCESS", "Discovered telemetry server at $cachedServerUrl")
+                            connectionStateManager.updateState(ConnectionState.CONNECTED)
+                            flushBuffer()
+                            syncBufferedLogs()
+                        } catch (_: Exception) {}
                     }
                 },
                 {
                     if (cachedServerUrl == null) {
-                        cachedServerUrl = "http://10.0.2.2:$DEFAULT_PORT"
-                        connectionStateManager.start()
+                        val url = "http://10.0.2.2:$DEFAULT_PORT"
+                        try {
+                            validateSecureEndpoint(url)
+                            cachedServerUrl = url
+                            connectionStateManager.start()
+                        } catch (_: Exception) {}
                     }
                 }
             )
