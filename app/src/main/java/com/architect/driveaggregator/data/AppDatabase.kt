@@ -12,9 +12,9 @@ import com.architect.driveaggregator.data.entities.LogEntity
 import com.architect.driveaggregator.data.dao.LogDao
 
 /**
- * AppDatabase acts as the Room Database singleton for MDrive (v6 schema),
- * housing VirtualFileEntity, FileShardEntity, PrimaryAccountSessionEntity, SmartRecommendationEntity
- * and LogEntity with WAL mode enabled and seamless migration.
+ * AppDatabase acts as the Room Database singleton for MDrive (v7 schema),
+ * housing VirtualFileEntity, FileShardEntity, PrimaryAccountSessionEntity, SmartRecommendationEntity,
+ * LogEntity, and EntityHistoryEntity with WAL mode enabled and seamless migration.
  */
 @Database(
     entities = [
@@ -23,9 +23,10 @@ import com.architect.driveaggregator.data.dao.LogDao
         PrimaryAccountSessionEntity::class,
         SmartRecommendationEntity::class,
         SharingLinkEntity::class,
-        LogEntity::class
+        LogEntity::class,
+        EntityHistoryEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -36,12 +37,36 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun virtualFileDao(): VirtualFileDao
     abstract fun sharingLinkDao(): SharingLinkDao
     abstract fun logDao(): LogDao
+    abstract fun entityHistoryDao(): EntityHistoryDao
 
     companion object {
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
         private const val DATABASE_NAME = "mdrive_saga_ledger.db"
+
+        /**
+         * Migration from version 6 to version 7:
+         * Adds `version` column to `virtual_files` table and creates `entity_histories` table with indexes.
+         */
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE virtual_files ADD COLUMN version INTEGER NOT NULL DEFAULT 1")
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `entity_histories` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `entity_id` TEXT NOT NULL,
+                        `version` INTEGER NOT NULL,
+                        `snapshot_json` TEXT NOT NULL,
+                        `changed_by` TEXT NOT NULL,
+                        `change_reason` TEXT NOT NULL,
+                        `created_at` INTEGER NOT NULL
+                    )
+                """)
+                database.execSQL("CREATE INDEX IF NOT EXISTS `index_entity_histories_entity_id` ON `entity_histories` (`entity_id`)")
+                database.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_entity_histories_entity_id_version` ON `entity_histories` (`entity_id`, `version`)")
+            }
+        }
 
         /**
          * Migration from version 5 to version 6:
@@ -194,7 +219,7 @@ abstract class AppDatabase : RoomDatabase() {
                 AppDatabase::class.java,
                 DATABASE_NAME
             )
-                .addMigrations(MIGRATION_3_4, MIGRATION_1_4, MIGRATION_4_5, MIGRATION_5_6)
+                .addMigrations(MIGRATION_3_4, MIGRATION_1_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                 .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
                 .build()
         }

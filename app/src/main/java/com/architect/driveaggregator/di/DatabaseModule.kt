@@ -10,6 +10,8 @@ import com.architect.driveaggregator.data.VirtualFileDao
 import com.architect.driveaggregator.sharing.SharingLinkDao
 import com.architect.driveaggregator.sharing.SharingManager
 import com.architect.driveaggregator.data.dao.LogDao
+import com.architect.driveaggregator.data.EntityHistoryDao
+import com.architect.driveaggregator.data.EntityVersioningManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -59,6 +61,22 @@ object DatabaseModule {
     @Singleton
     fun provideLogDao(database: AppDatabase): LogDao {
         return database.logDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideEntityHistoryDao(database: AppDatabase): EntityHistoryDao {
+        return database.entityHistoryDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideEntityVersioningManager(
+        database: AppDatabase,
+        virtualFileDao: VirtualFileDao,
+        entityHistoryDao: EntityHistoryDao
+    ): EntityVersioningManager {
+        return EntityVersioningManager(database, virtualFileDao, entityHistoryDao)
     }
 
     @Provides

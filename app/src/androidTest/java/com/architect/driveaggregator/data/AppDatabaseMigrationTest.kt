@@ -56,4 +56,24 @@ class AppDatabaseMigrationTest {
         assertNotNull(recCursor)
         recCursor.close()
     }
+
+    @Test
+    @Throws(IOException::class)
+    fun migrate6To7() {
+        var db = helper.createDatabase(TEST_DB, 6).apply {
+            execSQL("INSERT INTO virtual_files (virtualFileId, fileName, fileSize, mimeType, sagaState, createdAt, updatedAt) VALUES ('test_v6_id', 'doc.pdf', 500, 'application/pdf', 'COMMITTED', 1000, 2000)")
+            close()
+        }
+
+        db = helper.runMigrationsAndValidate(TEST_DB, 7, true, AppDatabase.MIGRATION_6_7)
+
+        val cursor = db.query("SELECT version FROM virtual_files WHERE virtualFileId = 'test_v6_id'")
+        assertTrue(cursor.moveToFirst())
+        assertEquals(1, cursor.getInt(0)) // version default 1
+        cursor.close()
+
+        val historyCursor = db.query("SELECT * FROM entity_histories")
+        assertNotNull(historyCursor)
+        historyCursor.close()
+    }
 }

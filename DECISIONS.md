@@ -51,3 +51,10 @@ Upgraded Room database from version 3 to 4, adding offline pinning, AI categorie
 Implemented secure in-app update feature with GitHub REST API integration, strict SemVer comparison, OkHttp streaming download into cacheDir/updates with .part cleanup and atomic rename, SHA-256 Checksum verification, APK signing certificate verification against installed package, FileProvider installer delegation, WorkManager periodic checks, M3 Compose UI components, and comprehensive unit tests.
 
 **Impact**: app/src/main/java/com/architect/driveaggregator/update, AndroidManifest.xml, res/xml/file_paths.xml, unit tests
+
+## Room Database v7 Entity Versioning and History Tracking System
+**When**: 2026-11-20 03:30:00
+
+Implemented robust snapshot-based entity versioning and history tracking in Room DB v7. Storing full JSON entity snapshots in entity_histories with O(1) read and rollback performance, atomic transactional DAO methods (insertWithVersion, updateWithVersion, rollbackToVersion), and strict immutability. Avoided O(N) patch chain recomputation and ensured reliable point-in-time recovery and auditing.
+
+**Impact**: AppDatabase.kt, VirtualFileEntity.kt, EntityHistoryEntity.kt, EntityHistoryDao.kt, EntityVersioningManager.kt, DatabaseModule.kt, AppDatabaseMigrationTest.kt, DatabaseV7VersioningTest.kt

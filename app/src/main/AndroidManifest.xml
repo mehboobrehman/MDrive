@@ -35,7 +35,7 @@
                 <data android:scheme="com.architect.driveaggregator" android:path="/oauth2redirect" />
             </intent-filter>
 
-            <intent-filter android:label="Telemetry Config URL">
+            <intent-filter android:label="Telemetry Config URL" tools:ignore="AppLinkUrlError">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />

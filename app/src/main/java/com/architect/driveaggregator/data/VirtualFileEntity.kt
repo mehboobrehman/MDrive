@@ -33,5 +33,9 @@ data class VirtualFileEntity(
     val shareUrl: String? = null,
     
     @ColumnInfo(name = "last_synced_timestamp", defaultValue = "0")
-    val lastSyncedTimestamp: Long = 0L
+    val lastSyncedTimestamp: Long = 0L,
+
+    // v7 Schema Additions
+    @ColumnInfo(name = "version", defaultValue = "1")
+    val version: Int = 1
 )
