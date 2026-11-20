@@ -3,7 +3,6 @@ package com.architect.driveaggregator.sync
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.architect.driveaggregator.data.AppDatabase
 import com.architect.driveaggregator.engine.VirtualDriveEngine
 import com.architect.driveaggregator.auth.GoogleOAuthManager
@@ -17,9 +16,13 @@ import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.kotlin.*
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import java.io.File
 
-@RunWith(AndroidJUnit4::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(manifest = Config.NONE)
 class SyncOrchestratorTest {
 
     private lateinit var context: Context
@@ -72,9 +75,11 @@ class SyncOrchestratorTest {
     }
 
     @Test
-    fun testRegistrationAndShardingLifecycle() = runBlocking {
-        assertNotNull(syncOrchestrator)
-        assertNotNull(database)
+    fun testRegistrationAndShardingLifecycle() {
+        runBlocking {
+            assertNotNull(syncOrchestrator)
+            assertNotNull(database)
+        }
     }
 
     @Test
@@ -93,6 +98,75 @@ class SyncOrchestratorTest {
             // Verify no shard files left in context.cacheDir
             val remainingShards = context.cacheDir.listFiles { _, name -> name.contains("virtual_file_test_1") }
             assertTrue("Temporary shard files should be cleaned up in finally block", remainingShards == null || remainingShards.isEmpty())
+
+            sourceFile.delete()
+        }
+    }
+
+    @Test
+    fun testCoordinateSyncUploadFailureSetsFailedStateNotCommitted() {
+        runBlocking {
+            val sourceFile = File(context.cacheDir, "source_fail_test.txt")
+            sourceFile.writeText("Content for upload failure test scenario.")
+
+            val mockUploadManager = mock<GoogleResumableUploadManager>()
+            whenever(mockUploadManager.uploadShard(any(), any(), any())).thenAnswer {
+                throw RuntimeException("Simulated upload network error")
+            }
+
+            val cacheManager = com.architect.driveaggregator.cache.CacheManager(diskLruCache)
+            val orchestrator = SyncOrchestrator(
+                database,
+                VirtualDriveEngine(database.sagaTransactionDao(), cacheManager = cacheManager),
+                mockUploadManager,
+                encryptionManager,
+                context
+            )
+
+            val virtualFileId = "vf_fail_test_1"
+            var exceptionThrown = false
+            try {
+                orchestrator.coordinateSync(sourceFile.absolutePath, virtualFileId) { _, _ -> }
+            } catch (e: Exception) {
+                exceptionThrown = true
+            }
+
+            assertTrue("Exception should be propagated from coordinateSync", exceptionThrown)
+
+            val vf = database.sagaTransactionDao().getVirtualFile(virtualFileId)
+            assertNotNull("Virtual file record should exist", vf)
+            assertEquals("Saga state should be FAILED, not COMMITTED", "FAILED", vf?.sagaState)
+
+            sourceFile.delete()
+        }
+    }
+
+    @Test
+    fun testCoordinateSyncSuccessSetsCommittedState() {
+        runBlocking {
+            val sourceFile = File(context.cacheDir, "source_success_test.txt")
+            sourceFile.writeText("Content for successful upload synchronization test scenario.")
+
+            val mockUploadManager = mock<GoogleResumableUploadManager>()
+            whenever(mockUploadManager.uploadShard(any(), any(), any())).thenAnswer {
+                "remote_shard_file_id"
+            }
+
+            val cacheManager = com.architect.driveaggregator.cache.CacheManager(diskLruCache)
+            val orchestrator = SyncOrchestrator(
+                database,
+                VirtualDriveEngine(database.sagaTransactionDao(), cacheManager = cacheManager),
+                mockUploadManager,
+                encryptionManager,
+                context
+            )
+
+            val virtualFileId = "vf_success_test_1"
+            orchestrator.coordinateSync(sourceFile.absolutePath, virtualFileId) { _, _ -> }
+
+            val vf = database.sagaTransactionDao().getVirtualFile(virtualFileId)
+            assertNotNull("Virtual file record should exist", vf)
+            assertEquals("Saga state should be COMMITTED on success", "COMMITTED", vf?.sagaState)
 
             sourceFile.delete()
         }

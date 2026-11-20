@@ -58,3 +58,10 @@ Implemented secure in-app update feature with GitHub REST API integration, stric
 Implemented robust snapshot-based entity versioning and history tracking in Room DB v7. Storing full JSON entity snapshots in entity_histories with O(1) read and rollback performance, atomic transactional DAO methods (insertWithVersion, updateWithVersion, rollbackToVersion), and strict immutability. Avoided O(N) patch chain recomputation and ensured reliable point-in-time recovery and auditing.
 
 **Impact**: AppDatabase.kt, VirtualFileEntity.kt, EntityHistoryEntity.kt, EntityHistoryDao.kt, EntityVersioningManager.kt, DatabaseModule.kt, AppDatabaseMigrationTest.kt, DatabaseV7VersioningTest.kt
+
+## SyncOrchestrator: Atomic completion tracking via UploadWorkerQueue CompletableDeferred
+**When**: 2026-11-20 11:20:26
+
+Replaced non-atomic while-true polling loop in SyncOrchestrator with CompletableDeferred tied to task IDs in UploadWorkerQueue. Ensures robust error propagation, prevents premature COMMITTED state on shard upload failure, and eliminates race conditions.
+
+**Impact**: SyncOrchestrator.kt, UploadWorkerQueue.kt, SyncOrchestratorTest.kt

@@ -1,6 +1,7 @@
 package com.architect.driveaggregator.upload
 
 import com.architect.driveaggregator.data.FileShardEntity
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -58,6 +59,7 @@ class UploadWorkerQueue(
     private val queuedTasks = mutableListOf<UploadTask>()
     private val activeTasks = ConcurrentHashMap<String, UploadTask>()
     private val activePerAccountMap = ConcurrentHashMap<String, AtomicInteger>()
+    private val taskDeferreds = ConcurrentHashMap<String, CompletableDeferred<Unit>>()
 
     private val _statsFlow = MutableStateFlow(
         QueueStats(
@@ -84,6 +86,8 @@ class UploadWorkerQueue(
      * Enqueues an upload task with optional priority.
      */
     suspend fun enqueue(task: UploadTask) {
+        val deferred = CompletableDeferred<Unit>()
+        taskDeferreds[task.taskId] = deferred
         mutex.withLock {
             queuedTasks.add(task)
             queuedTasks.sort()
@@ -96,10 +100,27 @@ class UploadWorkerQueue(
      */
     suspend fun enqueueAll(tasks: List<UploadTask>) {
         mutex.withLock {
-            queuedTasks.addAll(tasks)
+            for (task in tasks) {
+                val deferred = CompletableDeferred<Unit>()
+                taskDeferreds[task.taskId] = deferred
+                queuedTasks.add(task)
+            }
             queuedTasks.sort()
         }
         workerTrigger.send(Unit)
+    }
+
+    /**
+     * Enqueues tasks and suspends until all of them complete successfully,
+     * or throws the first exception encountered if any task fails.
+     */
+    suspend fun enqueueAndWait(tasks: List<UploadTask>) {
+        if (tasks.isEmpty()) return
+        enqueueAll(tasks)
+        for (task in tasks) {
+            val deferred = taskDeferreds[task.taskId] ?: CompletableDeferred(Unit)
+            deferred.await()
+        }
     }
 
     /**
@@ -109,6 +130,7 @@ class UploadWorkerQueue(
         mutex.withLock {
             queuedTasks.removeAll { it.taskId == taskId }
         }
+        taskDeferreds.remove(taskId)?.completeExceptionally(java.util.concurrent.CancellationException("Task $taskId cancelled"))
         val active = activeTasks[taskId]
         if (active != null) {
             // Decrement account counter if active
@@ -124,7 +146,11 @@ class UploadWorkerQueue(
      */
     suspend fun clearQueue() {
         mutex.withLock {
+            val tasksToCancel = queuedTasks.toList()
             queuedTasks.clear()
+            for (task in tasksToCancel) {
+                taskDeferreds.remove(task.taskId)?.completeExceptionally(java.util.concurrent.CancellationException("Queue cleared"))
+            }
         }
         updateStats()
     }
@@ -171,8 +197,9 @@ class UploadWorkerQueue(
                 scope.launch {
                     try {
                         uploadManager.uploadShard(task.shard, task.dataSourceFile)
+                        taskDeferreds[task.taskId]?.complete(Unit)
                     } catch (e: Exception) {
-                        // Log or handle terminal failure if needed
+                        taskDeferreds[task.taskId]?.completeExceptionally(e)
                     } finally {
                         mutex.withLock {
                             decrementAccountCount(accountId)

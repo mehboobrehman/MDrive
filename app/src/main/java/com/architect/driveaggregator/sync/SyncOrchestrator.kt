@@ -197,16 +197,7 @@ class SyncOrchestrator(
                     )
                 }
 
-                uploadWorkerQueue.enqueueAll(uploadTasks)
-                
-                // Wait for completion
-                withContext(Dispatchers.IO) {
-                    while (true) {
-                        val stats = uploadWorkerQueue.getStats()
-                        if (stats.activeUploadsCount == 0 && stats.queuedTasksCount == 0) break
-                        kotlinx.coroutines.delay(100L)
-                    }
-                }
+                uploadWorkerQueue.enqueueAndWait(uploadTasks)
 
                 // 4. Saga Commit Phase
                 onProgress(100, "Sync complete!")
