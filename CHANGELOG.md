@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.27] - 2026-11-19
+- Release v1.0.27: Major refactor of MainActivity.kt to Material 3 dashboard.
+
 ## [1.0.26] - 2026-11-17
 - Release v1.0.26: Fresh release with updated versioning, build artifacts, and release automation.
 
