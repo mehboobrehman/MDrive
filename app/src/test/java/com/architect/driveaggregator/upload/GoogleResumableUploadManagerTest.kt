@@ -196,4 +196,31 @@ class GoogleResumableUploadManagerTest {
         assertEquals("FAILED", shards[0].uploadState)
         assertEquals("FAILED", shards[1].uploadState)
     }
+
+    @Test
+    fun testParseRangeHeader_validResumedOffset() {
+        val manager = GoogleResumableUploadManager(database.sagaTransactionDao(), oauthManager)
+        assertEquals(512L, manager.parseRangeHeader("bytes=0-511", 1024L))
+        assertEquals(1024L, manager.parseRangeHeader("bytes=0-1023", 1024L))
+    }
+
+    @Test
+    fun testParseRangeHeader_boundaryConditions() {
+        val manager = GoogleResumableUploadManager(database.sagaTransactionDao(), oauthManager)
+        // Range ending >= totalSize - 1 should return totalSize
+        assertEquals(1024L, manager.parseRangeHeader("bytes=0-2000", 1024L))
+        // 0 bytes uploaded (bytes=0-)
+        assertEquals(0L, manager.parseRangeHeader("bytes=0-", 1024L))
+    }
+
+    @Test
+    fun testParseRangeHeader_malformedRanges() {
+        val manager = GoogleResumableUploadManager(database.sagaTransactionDao(), oauthManager)
+        assertEquals(0L, manager.parseRangeHeader(null, 1024L))
+        assertEquals(0L, manager.parseRangeHeader("", 1024L))
+        assertEquals(0L, manager.parseRangeHeader("bytes=abc-def", 1024L))
+        assertEquals(0L, manager.parseRangeHeader("bytes=500-200", 1024L)) // start > end
+        assertEquals(0L, manager.parseRangeHeader("bytes=0", 1024L)) // missing hyphen
+        assertEquals(0L, manager.parseRangeHeader("invalid", 1024L))
+    }
 }

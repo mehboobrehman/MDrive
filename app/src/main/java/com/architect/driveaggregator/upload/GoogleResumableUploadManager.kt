@@ -118,17 +118,7 @@ class GoogleResumableUploadManager(
             if (response.code == 308) {
                 // Resume Incomplete status code
                 val rangeHeader = response.header("Range")
-                if (rangeHeader != null) {
-                    // Range format: bytes=0-49999
-                    val parts = rangeHeader.split("-")
-                    if (parts.size == 2) {
-                        val lastByteIndex = parts[1].toLongOrNull() ?: -1L
-                        if (lastByteIndex >= 0) {
-                            return lastByteIndex + 1 // Next byte offset to upload
-                        }
-                    }
-                }
-                return 0L
+                return parseRangeHeader(rangeHeader, totalSize)
             } else if (response.isSuccessful || response.code == 201) {
                 // Already fully uploaded
                 return totalSize
@@ -347,6 +337,45 @@ class GoogleResumableUploadManager(
             .delete()
             .build()
         okHttpClient.newCall(request).execute().close()
+    }
+
+    /**
+     * Parses and validates the HTTP 'Range' header (e.g. "bytes=0-4999") from Google Drive API.
+     * Returns the next byte offset to upload, validated against totalSize.
+     */
+    internal fun parseRangeHeader(rangeHeader: String?, totalSize: Long): Long {
+        if (rangeHeader.isNullOrBlank()) {
+            return 0L
+        }
+
+        val cleaned = rangeHeader.trim()
+            .removePrefix("bytes")
+            .removePrefix("=")
+            .trim()
+
+        val regex = Regex("""^(\d+)-(\d*)$""")
+        val match = regex.find(cleaned) ?: return 0L
+
+        val startStr = match.groupValues[1]
+        val endStr = match.groupValues[2]
+
+        val startByte = startStr.toLongOrNull() ?: return 0L
+
+        if (endStr.isEmpty()) {
+            return if (startByte == 0L) 0L else startByte
+        }
+
+        val endByte = endStr.toLongOrNull() ?: return 0L
+
+        if (startByte < 0 || startByte > endByte) {
+            return 0L
+        }
+
+        if (endByte >= totalSize - 1) {
+            return totalSize
+        }
+
+        return endByte + 1
     }
 }
 
