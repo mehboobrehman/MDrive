@@ -11,6 +11,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import java.io.IOException
+import java.util.ConcurrentModificationException
 
 @RunWith(RobolectricTestRunner::class)
 class DatabaseV7VersioningTest {
@@ -138,5 +139,40 @@ class DatabaseV7VersioningTest {
         val h1AfterUpdate = versioningManager.getSnapshotAtVersion("vf_immut_1", 1)
         assertNotNull(h1AfterUpdate)
         assertEquals(500L, h1AfterUpdate!!.fileSize)
+    }
+
+    @Test
+    fun testOptimisticLockingConflictOnStaleVersionWrite() = runBlocking {
+        val file = VirtualFileEntity(
+            virtualFileId = "vf_conflict_1",
+            fileName = "conflict.txt",
+            fileSize = 100L,
+            mimeType = "text/plain",
+            sagaState = "COMMITTED"
+        )
+
+        versioningManager.insertWithVersion(file, changedBy = "alice", changeReason = "Initial insert")
+
+        // Client A reads version 1
+        val clientAFile = virtualFileDao.getFileById("vf_conflict_1")!!
+        assertEquals(1, clientAFile.version)
+
+        // Client B reads version 1 and updates first (moves DB to version 2)
+        val clientBFile = clientAFile.copy(fileName = "updated_by_b.txt")
+        versioningManager.updateWithVersion(clientBFile, changedBy = "bob", changeReason = "Concurrent update by B")
+
+        assertEquals(2, virtualFileDao.getFileById("vf_conflict_1")!!.version)
+
+        // Client A attempts to update using stale version 1 -> should throw ConcurrentModificationException
+        val staleUpdate = clientAFile.copy(fileName = "updated_by_a.txt")
+        var exceptionThrown = false
+        try {
+            versioningManager.updateWithVersion(staleUpdate, changedBy = "alice", changeReason = "Stale update by A")
+        } catch (e: ConcurrentModificationException) {
+            exceptionThrown = true
+            assertTrue(e.message!!.contains("Optimistic locking conflict"))
+        }
+
+        assertTrue("Expected ConcurrentModificationException on stale version write", exceptionThrown)
     }
 }

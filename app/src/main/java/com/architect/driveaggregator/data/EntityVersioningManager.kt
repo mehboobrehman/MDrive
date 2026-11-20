@@ -2,6 +2,7 @@ package com.architect.driveaggregator.data
 
 import androidx.room.withTransaction
 import com.google.gson.Gson
+import java.util.ConcurrentModificationException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -69,6 +70,22 @@ class EntityVersioningManager @Inject constructor(
         database.withTransaction {
             val existing = virtualFileDao.getFileById(file.virtualFileId)
             val currentVersion = existing?.version ?: entityHistoryDao.getLatestVersion(file.virtualFileId) ?: 0
+
+            if (currentVersion > 0) {
+                if (file.version != currentVersion) {
+                    throw ConcurrentModificationException(
+                        "Optimistic locking conflict: Entity ${file.virtualFileId} version in database is $currentVersion, " +
+                        "but update expected version ${file.version}."
+                    )
+                }
+                val versionExists = entityHistoryDao.verifyVersionRecorded(file.virtualFileId, currentVersion) > 0
+                if (!versionExists) {
+                    throw IllegalStateException("Versioning integrity error: version $currentVersion recorded in virtual_files but missing in entity_histories for entity ${file.virtualFileId}")
+                }
+            } else {
+                throw IllegalArgumentException("Cannot update non-existent entity ${file.virtualFileId}. Use insertWithVersion instead.")
+            }
+
             val newVersion = currentVersion + 1
 
             val updatedFile = file.copy(

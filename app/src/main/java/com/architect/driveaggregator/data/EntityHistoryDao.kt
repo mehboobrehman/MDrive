@@ -22,4 +22,7 @@ interface EntityHistoryDao {
 
     @Query("SELECT MAX(version) FROM entity_histories WHERE entity_id = :entityId")
     suspend fun getLatestVersion(entityId: String): Int?
+
+    @Query("SELECT COUNT(*) FROM entity_histories WHERE entity_id = :entityId AND version = :version")
+    suspend fun verifyVersionRecorded(entityId: String, version: Int): Int
 }

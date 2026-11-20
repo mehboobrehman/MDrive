@@ -65,3 +65,10 @@ Implemented robust snapshot-based entity versioning and history tracking in Room
 Replaced non-atomic while-true polling loop in SyncOrchestrator with CompletableDeferred tied to task IDs in UploadWorkerQueue. Ensures robust error propagation, prevents premature COMMITTED state on shard upload failure, and eliminates race conditions.
 
 **Impact**: SyncOrchestrator.kt, UploadWorkerQueue.kt, SyncOrchestratorTest.kt
+
+## Optimistic Locking in EntityVersioningManager
+**When**: 2026-11-20 11:56:29
+
+Added version validation during updateWithVersion transactions in EntityVersioningManager and EntityHistoryDao. If entity version in the database has changed since read, a ConcurrentModificationException is thrown to prevent lost updates during concurrent Room v7 entity updates.
+
+**Impact**: EntityVersioningManager.kt, EntityHistoryDao.kt, DatabaseV7VersioningTest.kt
